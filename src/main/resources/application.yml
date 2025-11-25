@@ -17,3 +17,10 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
+app:
+  jwt:
+    # 아무 문자열 base64로 인코딩, 나중에 EC2에서는 환경변수로 뺄 것
+    secret: "Y2hhbmdlLXRoaXMtc2VjcmV0LWtleS10by15b3VyLW93bi1sb25nLXJhbmRvbS1zdHJpbmctMTk5NDA1MTgxMg=="
+    # 1시간 (1000ms * 60 * 60)
+    access-token-expiration-ms: 3600000

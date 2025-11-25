@@ -1,6 +1,8 @@
 package com.jyo.techblog.domain.user;
 
+import com.jyo.techblog.auth.JwtTokenProvider;
 import com.jyo.techblog.domain.user.dto.LoginRequest;
+import com.jyo.techblog.domain.user.dto.LoginResponse;
 import com.jyo.techblog.domain.user.dto.RegisterRequest;
 import com.jyo.techblog.domain.user.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * 회원가입
@@ -45,10 +48,9 @@ public class UserService {
     }
 
     /**
-     * 로그인
-     * - 이메일 & 비밀번호 체크만 하고, 맞으면 회원 정보 반환
+     * 로그인 + AccessToken 발급
      */
-    public UserResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
@@ -57,7 +59,20 @@ public class UserService {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
+        // JWT Access Token 생성
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getRole());
+
         // 나중엔 여기서 JWT 발급 예정
+        return LoginResponse.of(accessToken, UserResponse.from(user));
+    }
+
+    /**
+     * userId로 회원 조회 (인증된 사용자 정보 확인용)
+     */
+    public UserResponse getCurrentUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
         return UserResponse.from(user);
     }
 
