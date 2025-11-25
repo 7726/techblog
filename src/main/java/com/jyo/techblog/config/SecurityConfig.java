@@ -1,5 +1,7 @@
 package com.jyo.techblog.config;
 
+import com.jyo.techblog.auth.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,17 +11,21 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * 임시 Security 설정
- * - 일단 모든 요청 OPEN
  * - H2 콘솔 접속 허용
- * - 기본 로그인 페이지 비활성화
- * - 추후 JWT 인증/인가 로직 넣을 예정
+ * - /api/auth/** 는 누구나 접근 가능
+ * - 그 외 /api/** 는 인증 필요
+ * - 나머지는 일단 허용
  */
 @Configuration
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -34,16 +40,20 @@ public class SecurityConfig {
                         .frameOptions(frame -> frame.sameOrigin())
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // H2 콘솔 모두 허용
+                        // H2 콘솔
                         .requestMatchers("/h2-console/**").permitAll()
-                        // API 전부 임시로 허용
-                        .requestMatchers("/api/**").permitAll()
-                        // 나머지도 일단 허용
+                        // 인증/회원가입 API는 모두 허용
+                        .requestMatchers("/api/auth/**").permitAll()
+                        // 그 외 API는 인증 필요
+                        .requestMatchers("/api/**").authenticated()
+                        // 나머지는 일단 허용 (정적 리소스, 프론트 등)
                         .anyRequest().permitAll()
                 )
-                // 기본 로그인 폼, HTTP Basic 비활성화
+                // JWT로 처리하기 위해 기본 로그인 폼, HTTP Basic 비활성화
                 .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable);
+                .httpBasic(AbstractHttpConfigurer::disable)
+                // UsernamePasswordAuthenticationFilter 전에 JWT 필터를 끼워넣기
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

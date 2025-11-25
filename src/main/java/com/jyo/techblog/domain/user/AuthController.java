@@ -1,6 +1,7 @@
 package com.jyo.techblog.domain.user;
 
 import com.jyo.techblog.domain.user.dto.LoginRequest;
+import com.jyo.techblog.domain.user.dto.LoginResponse;
 import com.jyo.techblog.domain.user.dto.RegisterRequest;
 import com.jyo.techblog.domain.user.dto.UserResponse;
 import jakarta.validation.Valid;
@@ -35,8 +36,8 @@ public class AuthController {
      * 로그인 (JWT 전 단계)
      */
     @PostMapping("/login")
-    public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginRequest request) {
-        UserResponse response = userService.login(request);
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = userService.login(request);
         return ResponseEntity.ok(response);
     }
 
