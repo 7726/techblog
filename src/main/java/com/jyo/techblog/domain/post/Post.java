@@ -31,6 +31,10 @@ public class Post extends BaseTimeEntity {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
+    // 소프트 삭제
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     //== 생성 메서드 ==//
     public static Post createPost(String title, String content, User author) {
         Post post = new Post();
@@ -46,4 +50,8 @@ public class Post extends BaseTimeEntity {
         this.content = content;
     }
 
+    // 소프트 삭제
+    public void softDelete() {
+        this.deleted = true;
+    }
 }
