@@ -11,10 +11,10 @@ import lombok.Setter;
 @Setter
 public class PostCreateRequest {
 
-    @NotBlank
+    @NotBlank(message = "제목은 필수입니다.")
     private String title;
 
-    @NotBlank
+    @NotBlank(message = "내용은 필수입니다.")
     private String content;  // 위지윅에서 내려오는 HTML
 
 }

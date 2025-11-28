@@ -14,13 +14,13 @@ import lombok.Setter;
 public class RegisterRequest {
 
     @Email
-    @NotBlank
+    @NotBlank(message = "이메일은 공백일 수 없습니다.")
     private String email;
 
-    @NotBlank
+    @NotBlank(message = "패스워드는 공백일 수 없습니다.")
     @Size(min = 8, max = 100)
     private String password;
 
-    @NotBlank
+    @NotBlank(message = "닉네임은 공백일 수 없습니다.")
     private String nickname;
 }
