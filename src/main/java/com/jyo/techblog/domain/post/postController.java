@@ -5,6 +5,9 @@ import com.jyo.techblog.domain.post.dto.PostResponse;
 import com.jyo.techblog.domain.post.dto.PostUpdateRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -53,9 +56,11 @@ public class postController {
      */
     @GetMapping
     public ResponseEntity<List<PostResponse>> getPosts(
-            @RequestParam(required = false) String keyword
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable
     ) {
-        List<PostResponse> responses = postService.getPosts(keyword);
+        List<PostResponse> responses = postService.getPosts(keyword, pageable);
         return ResponseEntity.ok(responses);
     }
 
