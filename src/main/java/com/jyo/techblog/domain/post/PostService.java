@@ -6,6 +6,7 @@ import com.jyo.techblog.domain.post.dto.PostUpdateRequest;
 import com.jyo.techblog.domain.user.User;
 import com.jyo.techblog.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,13 +57,13 @@ public class PostService {
      * - keyword가 없으면 전체 목록
      * - keyword가 있으면 제목 or 내용만 포함된 글만
      */
-    public List<PostResponse> getPosts(String keyword) {
+    public List<PostResponse> getPosts(String keyword, Pageable pageable) {
         List<Post> posts;
 
         if (keyword == null || keyword.isBlank()) {
-            posts = postRepository.findByDeletedFalse();
+            posts = postRepository.findByDeletedFalse(pageable);
         } else {
-            posts = postRepository.searchByKeyword(keyword);
+            posts = postRepository.searchByKeyword(keyword, pageable);
         }
 
         return posts.stream()
