@@ -17,4 +17,5 @@ public class PostCreateRequest {
     @NotBlank(message = "내용은 필수입니다.")
     private String content;  // 위지윅에서 내려오는 HTML
 
+    private Long categoryId;  // 카테고리 없으면 null
 }

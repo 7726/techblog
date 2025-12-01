@@ -1,6 +1,7 @@
 package com.jyo.techblog.domain.post;
 
 import com.jyo.techblog.common.BaseTimeEntity;
+import com.jyo.techblog.domain.category.Category;
 import com.jyo.techblog.domain.user.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -31,16 +32,21 @@ public class Post extends BaseTimeEntity {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")  // nullable 허용 (카테고리 없는 글)
+    private Category category;
+
     // 소프트 삭제
     @Column(nullable = false)
     private boolean deleted = false;
 
     //== 생성 메서드 ==//
-    public static Post createPost(String title, String content, User author) {
+    public static Post createPost(String title, String content, User author, Category category) {
         Post post = new Post();
         post.title = title;
         post.content = content;
         post.author = author;
+        post.category = category;
         return post;
     }
 
@@ -48,6 +54,10 @@ public class Post extends BaseTimeEntity {
     public void update(String title, String content) {
         this.title = title;
         this.content = content;
+    }
+
+    public void updateCategory(Category category) {
+        this.category = category;
     }
 
     // 소프트 삭제

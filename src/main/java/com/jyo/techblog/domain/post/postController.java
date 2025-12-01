@@ -5,6 +5,7 @@ import com.jyo.techblog.domain.post.dto.PostResponse;
 import com.jyo.techblog.domain.post.dto.PostUpdateRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -55,12 +56,13 @@ public class postController {
      * - /api/posts?keyword=스프링
      */
     @GetMapping
-    public ResponseEntity<List<PostResponse>> getPosts(
+    public ResponseEntity<Page<PostResponse>> getPosts(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
-        List<PostResponse> responses = postService.getPosts(keyword, pageable);
+        Page<PostResponse> responses = postService.getPosts(keyword, categoryId, pageable);
         return ResponseEntity.ok(responses);
     }
 

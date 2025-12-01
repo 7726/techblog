@@ -1,11 +1,14 @@
 package com.jyo.techblog.domain.post;
 
+import com.jyo.techblog.domain.category.Category;
+import com.jyo.techblog.domain.category.CategoryRepository;
 import com.jyo.techblog.domain.post.dto.PostCreateRequest;
 import com.jyo.techblog.domain.post.dto.PostResponse;
 import com.jyo.techblog.domain.post.dto.PostUpdateRequest;
 import com.jyo.techblog.domain.user.User;
 import com.jyo.techblog.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,7 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
 
     /**
      * 게시글 작성 (로그인 필요)
@@ -33,10 +37,13 @@ public class PostService {
         User author = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("작성자를 찾을 수 없습니다"));
 
+        Category category = findCategoryOrNull(request.getCategoryId());
+
         Post post = Post.createPost(
                 request.getTitle(),
                 request.getContent(),
-                author
+                author,
+                category
         );
 
         Post saved = postRepository.save(post);
@@ -57,18 +64,9 @@ public class PostService {
      * - keyword가 없으면 전체 목록
      * - keyword가 있으면 제목 or 내용만 포함된 글만
      */
-    public List<PostResponse> getPosts(String keyword, Pageable pageable) {
-        List<Post> posts;
-
-        if (keyword == null || keyword.isBlank()) {
-            posts = postRepository.findByDeletedFalse(pageable);
-        } else {
-            posts = postRepository.searchByKeyword(keyword, pageable);
-        }
-
-        return posts.stream()
-                .map(PostResponse::from)
-                .collect(Collectors.toList());
+    public Page<PostResponse> getPosts(String keyword, Long categoryId, Pageable pageable) {
+        Page<Post> page = postRepository.search(keyword, categoryId, pageable);
+        return page.map(PostResponse::from);
     }
 
     /**
@@ -94,7 +92,12 @@ public class PostService {
             throw new AccessDeniedException("본인의 글만 수정할 수 있습니다.");
         }
 
+        Category category = findCategoryOrNull(request.getCategoryId());
+
         post.update(request.getTitle(), request.getContent());
+        if (category != null) {
+            post.updateCategory(category);
+        }
         return PostResponse.from(post);
     }
 
@@ -119,4 +122,12 @@ public class PostService {
         post.softDelete();
     }
 
+    // 카테고리 조회
+    private Category findCategoryOrNull(Long categoryId) {
+        if (categoryId == null) {
+            return null;
+        }
+        return categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+    }
 }

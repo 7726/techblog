@@ -18,16 +18,28 @@ public class PostResponse {
     private String content;
     private Long authorId;
     private String authorNickname;
+    private Long categoryId;
+    private String categoryName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public static PostResponse from(Post post) {
+        Long categoryId = null;
+        String categoryName = null;
+
+        if (post.getCategory() != null) {
+            categoryId = post.getCategory().getId();
+            categoryName = post.getCategory().getName();
+        }
+
         return PostResponse.of(
                 post.getId(),
                 post.getTitle(),
                 post.getContent(),
                 post.getAuthor().getId(),
                 post.getAuthor().getNickname(),
+                categoryId,
+                categoryName,
                 post.getCreatedAt(),
                 post.getUpdatedAt()
         );
