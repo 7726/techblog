@@ -47,6 +47,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // H2 콘솔
                         .requestMatchers("/h2-console/**").permitAll()
+                        // 이미지 조회 접근 허용
+                        .requestMatchers("/files/**").permitAll()
                         // 인증/회원가입 API는 모두 허용
                         .requestMatchers("/api/auth/**").permitAll()
                         // 게시글, 카테고리 조회(GET)는 모두 허용

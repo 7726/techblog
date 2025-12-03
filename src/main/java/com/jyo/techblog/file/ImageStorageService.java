@@ -1,10 +1,12 @@
 package com.jyo.techblog.file;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,6 +26,15 @@ public class ImageStorageService {
     @Value("${app.upload.dir}")
     private String uploadDir;  // ex) "uploads"
 
+    private Path rootPath;  // 항상 절대 경로로 보관
+
+    @PostConstruct
+    public void init() throws IOException {
+        // 현재 작업 디렉토리 기준으로 절대 경로 계산
+        this.rootPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Files.createDirectories(rootPath);
+    }
+
     /**
      * 이미지 파일 저장 후 접근 URL 반환
      */
@@ -39,6 +50,7 @@ public class ImageStorageService {
 
         // 날짜별 디렉토리 분리 (예: uploads/2025/12/02)
         LocalDate today = LocalDate.now();
+
         Path basePath = Paths.get(uploadDir,
                 String.valueOf(today.getYear()),
                 String.format("%02d", today.getMonthValue()),
@@ -55,10 +67,13 @@ public class ImageStorageService {
         }
 
         String savedFileName = UUID.randomUUID() + ext;
-        Path targetPath = basePath.resolve(savedFileName);
+        Path targetPath = basePath.resolve(savedFileName);  // 절대 경로
 
-        // 실제 파일 저장
-        file.transferTo(targetPath.toFile());
+        // 실제 파일 저장, 절대 경로 넘기기
+        // file.transferTo(targetPath.toFile());
+        try (var in = file.getInputStream()) {
+            Files.copy(in, targetPath);
+        }
 
         // 클라이언트에서 접근할 수 있는 URL 생성
         String relativePath = String.join("/",
