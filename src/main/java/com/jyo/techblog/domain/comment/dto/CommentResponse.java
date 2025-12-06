@@ -1,17 +1,21 @@
 package com.jyo.techblog.domain.comment.dto;
 
 import com.jyo.techblog.domain.comment.Comment;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-public record CommentResponse(
-        Long id,
-        Long postId,
-        Long userId,
-        String userEmail,
-        String content,
-        LocalDateTime createdAt
-) {
+@Getter
+@AllArgsConstructor
+public class CommentResponse {
+
+    private Long id;
+    private Long postId;
+    private Long userId;
+    private String userEmail;
+    private String content;
+    private LocalDateTime createdAt;
 
     public static CommentResponse from(Comment comment) {
         return new CommentResponse(

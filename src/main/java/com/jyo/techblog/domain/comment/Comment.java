@@ -11,9 +11,7 @@ import lombok.*;
  */
 @Entity
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)  // JPA 프록시 및 기본 생성자 보호
 public class Comment extends BaseTimeEntity {
 
     @Id
@@ -35,6 +33,18 @@ public class Comment extends BaseTimeEntity {
 
     @Column(nullable = false)
     private boolean deleted = false;
+
+    // 생성 전용 생성자 (외부에서는 of() 정적 메서드로만 생성하게)
+    private Comment(Post post, User user, String content) {
+        this.post = post;
+        this.user = user;
+        this.content = content;
+    }
+
+    // 정적 팩토리 메서드
+    public static Comment of(Post post, User user, String content) {
+        return new Comment(post, user, content);
+    }
 
     public void updateContent(String content) {
         this.content = content;

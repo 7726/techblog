@@ -54,6 +54,10 @@ public class SecurityConfig {
                         // 게시글, 카테고리 조회(GET)는 모두 허용
                         .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+                        // GET 댓글 조회는 permitAll
+                        .requestMatchers(HttpMethod.GET, "/post/*/comments").permitAll()
+                        // 나머지 댓글 관련은 인증 필요
+                        .requestMatchers("/posts/*/comments", "/comments/**").hasAnyRole("USER", "ADMIN")
                         // 그 외 API는 인증 필요 (작성/수정/삭제 등)
                         .requestMatchers("/api/**").authenticated()
                         // 나머지는 일단 허용 (정적 리소스, 프론트 등)
