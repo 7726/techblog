@@ -58,6 +58,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/post/*/comments").permitAll()
                         // 나머지 댓글 관련은 인증 필요
                         .requestMatchers("/posts/*/comments", "/comments/**").hasAnyRole("USER", "ADMIN")
+                        // 좋아요 기능 (상태 조회, 좋아요는 모두 가능, 취소는 회원만 가능)
+                        .requestMatchers(HttpMethod.GET, "/posts/*/likes").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/posts/*/likes").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/posts/*/likes").hasAnyRole("USER", "ADMIN")
                         // 그 외 API는 인증 필요 (작성/수정/삭제 등)
                         .requestMatchers("/api/**").authenticated()
                         // 나머지는 일단 허용 (정적 리소스, 프론트 등)
