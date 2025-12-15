@@ -39,13 +39,12 @@ com.jyo.techblog<br/>
 - 게시글 작성/조회/수정/삭제(Soft Delete)
 - 카테고리 등록/수정/삭제
 - 이미지 업로드 → `/files/**` 로 조회 가능
+- 게시글 회원/비회원의 좋아요/취소 기능
 
 ---
 
 ## ✨ 앞으로 계획
-- 게시글 대표 이미지(썸네일)
 - WYSIWYG 에디터 연동
 - CI/CD (GitHub Actions → EC2 배포)
 - AWS S3 전환 예정
 - 프론트엔드는 Next.js 기반으로 연동할 예정
-
