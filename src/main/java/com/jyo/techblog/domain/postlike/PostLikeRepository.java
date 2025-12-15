@@ -12,7 +12,7 @@ public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
     boolean existsByPostAndUserAndDeletedFalse(Post post, User user);
 
     // 비회원(IP)이 누른 좋아요가 이미 있는지 확인
-    boolean existsByPostAndIpAddressAndMemberLikeAndDeletedFalse(Post post, String ipAddress, boolean memberLike);
+    boolean existsByPostAndIpAddressAndDeletedFalse(Post post, String ipAddress);
 
     // 전체 좋아요 수 (삭제되지 않은 것만)
     long countByPostAndDeletedFalse(Post post);

@@ -34,8 +34,8 @@ public class PostLikeController {
             return postLikeService.likeAsGuest(postId, ip);
         }
 
-        String email = authentication.getName();
-        return postLikeService.likeAsMember(postId, email);
+        Long userId = Long.valueOf(authentication.getName());
+        return postLikeService.likeAsMember(postId, userId);
     }
 
     /**
@@ -48,8 +48,8 @@ public class PostLikeController {
             @PathVariable Long postId,
             Authentication authentication
     ) {
-        String email = authentication.getName();
-        return postLikeService.cancelMemberLike(postId, email);
+        Long userId = Long.valueOf(authentication.getName());
+        return postLikeService.cancelMemberLike(postId, userId);
     }
 
     /**
@@ -70,7 +70,7 @@ public class PostLikeController {
             return postLikeService.getStatus(postId, null, ip);
         }
 
-        String email = authentication.getName();
-        return postLikeService.getStatus(postId, email, ip);
+        Long userId = Long.valueOf(authentication.getName());
+        return postLikeService.getStatus(postId, userId, ip);
     }
 }

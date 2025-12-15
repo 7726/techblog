@@ -23,12 +23,12 @@ public class PostLikeService {
      * - 이미 좋아요 눌렀으면 아무 일도 안하고 상태만 반환
      */
     @Transactional
-    public PostLikeResponse likeAsMember(Long postId, String userEmail) {
+    public PostLikeResponse likeAsMember(Long postId, Long userId) {
         // 1) 게시글, 사용자 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
-        User user = userRepository.findByEmail(userEmail)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         // 2) 이미 좋아요 눌렀는지 체크
@@ -56,7 +56,7 @@ public class PostLikeService {
 
         // 2) 이미 이 IP로 눌렀는지 체크 (memberLike = false 고정)
         boolean exists = postLikeRepository
-                .existsByPostAndIpAddressAndMemberLikeAndDeletedFalse(post, ipAddress, false);
+                .existsByPostAndIpAddressAndDeletedFalse(post, ipAddress);
 
         if (!exists) {
             // 3) 없으면 새로 생성
@@ -74,12 +74,12 @@ public class PostLikeService {
      * - 비회원은 취소 기능 X
      */
     @Transactional
-    public PostLikeResponse cancelMemberLike(Long postId, String userEmail) {
+    public PostLikeResponse cancelMemberLike(Long postId, Long userId) {
         // 1) 게시글, 사용자 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
-        User user = userRepository.findByEmail(userEmail)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         // 2) 활성화된 좋아요 찾기
@@ -99,7 +99,7 @@ public class PostLikeService {
      * - 로그인: 회원 기준
      * - 비로그인: IP 기준
      */
-    public PostLikeResponse getStatus(Long postId, String userEmailOrNull, String ipAddress) {
+    public PostLikeResponse getStatus(Long postId, Long userIdOrNull, String ipAddress) {
         // 1) 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
@@ -110,15 +110,15 @@ public class PostLikeService {
         // 3) 내가 눌렀는지 여부 계산
         boolean likedByMe = false;
 
-        if (userEmailOrNull != null) {
+        if (userIdOrNull != null) {
             // 회원 기준 체크
-            User user = userRepository.findByEmail(userEmailOrNull)
+            User user = userRepository.findById(userIdOrNull)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
             likedByMe = postLikeRepository.existsByPostAndUserAndDeletedFalse(post, user);
         } else {
             // 비회원(IP) 기준 체크
             likedByMe = postLikeRepository
-                    .existsByPostAndIpAddressAndMemberLikeAndDeletedFalse(post, ipAddress, false);
+                    .existsByPostAndIpAddressAndDeletedFalse(post, ipAddress);
         }
 
         return PostLikeResponse.of(count, likedByMe);
