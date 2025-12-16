@@ -36,6 +36,10 @@ public class Post extends BaseTimeEntity {
     @JoinColumn(name = "category_id")  // nullable 허용 (카테고리 없는 글)
     private Category category;
 
+    // 조회수
+    @Column(nullable = false)
+    private long viewCount = 0;
+
     // 소프트 삭제
     @Column(nullable = false)
     private boolean deleted = false;
@@ -58,6 +62,10 @@ public class Post extends BaseTimeEntity {
 
     public void updateCategory(Category category) {
         this.category = category;
+    }
+
+    public void increaseViewCount() {
+        this.viewCount++;
     }
 
     // 소프트 삭제

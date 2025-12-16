@@ -20,6 +20,7 @@ public class PostResponse {
     private String authorNickname;
     private Long categoryId;
     private String categoryName;
+    private long viewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -40,6 +41,7 @@ public class PostResponse {
                 post.getAuthor().getNickname(),
                 categoryId,
                 categoryName,
+                post.getViewCount(),
                 post.getCreatedAt(),
                 post.getUpdatedAt()
         );

@@ -1,8 +1,11 @@
 package com.jyo.techblog.domain.post;
 
+import com.jyo.techblog.common.util.IpUtils;
 import com.jyo.techblog.domain.post.dto.PostCreateRequest;
 import com.jyo.techblog.domain.post.dto.PostResponse;
 import com.jyo.techblog.domain.post.dto.PostUpdateRequest;
+import com.jyo.techblog.domain.postview.PostViewService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,6 +29,7 @@ import java.util.List;
 public class postController {
 
     private final PostService postService;
+    private final PostViewService postViewService;
 
     /**
      * 게시글 작성 (로그인 필요)
@@ -45,7 +49,15 @@ public class postController {
      * 게시글 단건 조회 (공개)
      */
     @GetMapping("/{id}")
-    public ResponseEntity<PostResponse> getPost(@PathVariable Long id) {
+    public ResponseEntity<PostResponse> getPost(
+            @PathVariable Long id,
+            HttpServletRequest request
+    ) {
+        String ip = IpUtils.getClientIp(request);
+
+        // 조회수 증가 (같은 IP면 쿨타임 적용)
+        postViewService.increaseViewCountIfNeeded(id, ip);
+
         PostResponse response = postService.getPost(id);
         return ResponseEntity.ok(response);
     }
