@@ -33,7 +33,7 @@ public class ImageController {
     /**
      * 이미지 업로드 (로그인 필요)
      * - 요청: multipart/form-data, key = "file"
-     * - 응답: { "url": "/files/2025/12/03/xxx.jpg" }
+     * - 응답: s3 URL
      */
     @PostMapping("/api/files/images")
     public ResponseEntity<ImageUploadResponse> uploadImage(
@@ -45,35 +45,4 @@ public class ImageController {
     }
 
     public record ImageUploadResponse(String url) {}
-
-    /**
-     * 이미지 조회
-     */
-    @GetMapping("files/{year}/{month}/{day}/{filename:.+}")
-    public ResponseEntity<Resource> getImage(
-            @PathVariable String year,
-            @PathVariable String month,
-            @PathVariable String day,
-            @PathVariable String filename
-    ) throws IOException {
-
-        Path rootPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-        Path filePath = rootPath.resolve(Paths.get(year, month, day, filename));
-
-        if (!Files.exists(filePath)) {
-            throw new NoSuchFileException(filePath.toString());
-        }
-
-        Resource resource = new UrlResource(filePath.toUri());
-
-        String contentType = Files.probeContentType(filePath);
-        if (contentType == null) {
-            // 이미지지만 타입 감지가 안 될 수도 있으니 기본값
-            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
-        }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .body(resource);
-    }
 }
