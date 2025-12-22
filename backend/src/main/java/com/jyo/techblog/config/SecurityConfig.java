@@ -31,6 +31,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final CorsConfig corsConfig;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -41,6 +42,7 @@ public class SecurityConfig {
                         .ignoringRequestMatchers(PathRequest.toH2Console())
                         .disable()
                 )
+                .addFilter(corsConfig.corsFilter())
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.sameOrigin())
                 )
