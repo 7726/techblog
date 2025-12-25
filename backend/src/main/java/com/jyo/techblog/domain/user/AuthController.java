@@ -28,8 +28,11 @@ public class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        UserResponse response = userService.register(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        // 초반엔 1인 블로그로 가기로 해서 회원가입 기능 막기
+        throw new RuntimeException("현재 회원가입 기능은 닫혀있습니다. 관리자에게 문의하세요.");
+
+        // UserResponse response = userService.register(request);
+        // return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**

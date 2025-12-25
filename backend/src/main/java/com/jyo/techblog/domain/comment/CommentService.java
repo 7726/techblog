@@ -10,6 +10,7 @@ import com.jyo.techblog.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,46 +22,67 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 댓글 생성
-     * - 로그인한 사용자 이메일로 User 조회
-     * - 게시글 ID로 Post 조회
-     * - Comment 엔티티 생성 후 저장
+     * - 회원 + 비회원 통합
      */
     @Transactional
     public CommentResponse create(String userEmail, Long postId, CommentCreateRequest request) {
-        // 댓글 작성자 조회
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        // 댓글 달 게시글 조회
+        // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
-        // 엔티티 생성
-        Comment comment = Comment.of(post, user, request.getContent());
+        User user = null;
+        String authorName = request.getAuthorName();
+        String password = request.getPassword();
 
-        // 저장 후 DTO로 변환
-        Comment saved = commentRepository.save(comment);
-        return CommentResponse.from(saved);
+        // 2. 회원/비회원 분기 처리
+        if (userEmail != null && !userEmail.equals("anonymousUser")) {
+            // 로그인한 회원
+            user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+            authorName = user.getNickname();  // 회원은 닉네임 자동 설정
+            password = null;  // 회원은 비번 필요 없음
+        } else {
+            // 비회원 유효성 검사
+            if (request.getAuthorName() == null || request.getPassword() == null) {
+                throw new IllegalArgumentException("비회원은 닉네임과 비밀번호가 필수입니다.");
+            }
+            // 비밀번호 암호화 (BCrypt)
+            password = passwordEncoder.encode(request.getPassword());
+        }
+
+        Comment comment = Comment.builder()
+                .post(post)
+                .user(user)  // 비회원이면 null
+                .content(request.getContent())
+                .authorName(authorName)
+                .password(password)
+                .build();
+
+        return CommentResponse.from(commentRepository.save(comment));
     }
 
     /**
      * 댓글 수정
-     * - 댓글 존재 여부 확인
-     * - 삭제된 댓글인지 확인
-     * - 작성자 본인인지 검증
-     * - 내용 수정
+     * - 비회원 댓글 수정 로직은 추후 작업
      */
     @Transactional
     public CommentResponse update(Long commentId, String userEmail, CommentUpdateRequest request) {
         // 활성 상태의 댓글 조회
         Comment comment = getActiveCommentOrThrow(commentId);
 
-        // 작성자 본인인지 확인
-        if (!comment.getUser().getEmail().equals(userEmail)) {
-            throw new IllegalStateException("본인 댓글만 수정할 수 있습니다.");
+        // 회원 댓글인지 확인
+        if (comment.getUser() != null) {
+            // 작성자 본인인지 확인
+            if (!comment.getUser().getEmail().equals(userEmail)) {
+                throw new IllegalStateException("본인 댓글만 수정할 수 있습니다.");
+            }
+        } else {
+            // 비회원 댓글은 수정 불가 (추후 수정)
+            throw new IllegalStateException("비회원 댓글은 수정할 수 없습니다. 삭제 후 다시 작성해주세요.");
         }
 
         // 내용 수정
@@ -71,20 +93,24 @@ public class CommentService {
     }
 
     /**
-     * 댓글 삭제
-     * - 댓글 존재 여부 확인
-     * - 삭제된 댓글인지 확인
-     * - 작성자 본인인지 검증
-     * - deleted 플래그만 true로 변경
+     * 댓글 삭제 (회원 + 비회원)
+     * - rawPassword: 비회원이 입력한 삭제용 비밀번호 (회원은 null)
      */
     @Transactional
-    public void delete(Long commentId, String userEmail) {
+    public void delete(Long commentId, String userEmail, String rawPassword) {
         // 활성 상태의 댓글 조회
         Comment comment = getActiveCommentOrThrow(commentId);
 
-        // 작성자 본인인지 확인
-        if (!comment.getUser().getEmail().equals(userEmail)) {
-            throw new IllegalArgumentException("본인 댓글만 삭제할 수 있습니다.");
+        if (comment.getUser() != null) {
+            // 회원 댓글인 경우: 본인 확인
+            if (userEmail == null || !comment.getUser().getEmail().equals(userEmail)) {
+                throw new IllegalArgumentException("본인 댓글만 삭제할 수 있습니다.");
+            }
+        } else {
+            // 비회원 댓글인 경우: 비밀번호 검증
+            if (rawPassword == null || !passwordEncoder.matches(rawPassword, comment.getPassword())) {
+                throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            }
         }
 
         comment.softDelete();
