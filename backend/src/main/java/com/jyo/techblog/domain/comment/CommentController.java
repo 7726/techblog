@@ -9,12 +9,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import java.util.Map; // Map 추가
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping // URL 매핑은 메서드 단위로 되어 있어서 여기 비워둬도 됨
+@RequestMapping
 public class CommentController {
 
     private final CommentService commentService;
@@ -22,6 +24,7 @@ public class CommentController {
     /**
      * 댓글 작성
      * - URL: POST /posts/{postId}/comments
+     * - body: { "content": "댓글 내용" }
      */
     @PostMapping("/posts/{postId}/comments")
     @ResponseStatus(HttpStatus.CREATED)
@@ -30,13 +33,16 @@ public class CommentController {
             @Valid @RequestBody CommentCreateRequest request,
             Authentication authentication
     ) {
-        String email = getEmailFromAuth(authentication);
+        // jWT에서 이메일 꺼내기
+        String email = authentication.getName();
+
+        // postId는 URL, content는 body에서 받아서 서비스로 전달
         return commentService.create(email, postId, request);
     }
 
     /**
-     * 댓글 목록 조회
-     * - URL: GET /posts/{postId}/comments
+     * 댓글 목록 조회 (비로그인도 조회 가능)
+     * - URL: GET /posts/{postId}/comments?page=0&size=10
      */
     @GetMapping("/posts/{postId}/comments")
     public Page<CommentResponse> getByPost(
@@ -47,7 +53,7 @@ public class CommentController {
     }
 
     /**
-     * 댓글 수정 (일단 회원 로직 위주, 비회원 수정은 추후 고려)
+     * 댓글 수정
      * - URL: PATCH /comments/{id}
      */
     @PatchMapping("/comments/{id}")
@@ -56,23 +62,23 @@ public class CommentController {
             @Valid @RequestBody CommentUpdateRequest request,
             Authentication authentication
     ) {
-        String email = getEmailFromAuth(authentication);
+        String email = authentication.getName();
         return commentService.update(id, email, request);
     }
 
     /**
-     * 댓글 삭제 (비회원 비밀번호 지원)
+     * 댓글 삭제 (수정됨: 비회원 비밀번호 받기 추가)
      * - URL: DELETE /comments/{id}
-     * - Body에 {"password": "1234"} 가 들어올 수 있음
+     * - Body: { "password": "..." } (비회원일 경우)
      */
     @DeleteMapping("/comments/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(
             @PathVariable Long id,
             Authentication authentication,
-            @RequestBody(required = false) Map<String, String> requestBody // 비번 받기 위해 추가
+            @RequestBody(required = false) Map<String, String> requestBody
     ) {
-        String email = getEmailFromAuth(authentication);
+        String email = authentication.getName(); // 기존 방식 유지
 
         // Body에서 비밀번호 꺼내기 (없으면 null)
         String password = (requestBody != null) ? requestBody.get("password") : null;
@@ -80,16 +86,4 @@ public class CommentController {
         commentService.delete(id, email, password);
     }
 
-    // 💡 인증 객체에서 안전하게 이메일 꺼내는 유틸 메서드
-    private String getEmailFromAuth(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
-        }
-        String name = authentication.getName();
-        // 스프링 시큐리티는 로그인 안 하면 "anonymousUser"라는 문자열을 줌 -> 이걸 null로 바꿔야 로직이 편함
-        if ("anonymousUser".equals(name)) {
-            return null;
-        }
-        return name;
-    }
 }
