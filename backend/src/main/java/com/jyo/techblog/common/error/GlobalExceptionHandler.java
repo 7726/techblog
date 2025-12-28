@@ -78,6 +78,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 400 - 잘못된 상태
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(
+            IllegalStateException ex,
+            HttpServletRequest request
+    ) {
+        ErrorResponse response = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.name())
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .timestamp(java.time.LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
      * 500 - 예상하지 못한 전체(서버) 예외
      */
     @ExceptionHandler(Exception.class)

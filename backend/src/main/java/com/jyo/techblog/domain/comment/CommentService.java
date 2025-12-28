@@ -5,6 +5,7 @@ import com.jyo.techblog.domain.comment.dto.CommentResponse;
 import com.jyo.techblog.domain.comment.dto.CommentUpdateRequest;
 import com.jyo.techblog.domain.post.Post;
 import com.jyo.techblog.domain.post.PostRepository;
+import com.jyo.techblog.domain.user.Role;
 import com.jyo.techblog.domain.user.User;
 import com.jyo.techblog.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ public class CommentService {
      * - 회원 + 비회원 통합
      */
     @Transactional
-    public CommentResponse create(String userEmail, Long postId, CommentCreateRequest request) {
+    public CommentResponse create(Long userId, Long postId, CommentCreateRequest request) {
         // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
@@ -39,9 +40,9 @@ public class CommentService {
         String password = request.getPassword();
 
         // 2. 회원/비회원 분기 처리
-        if (userEmail != null && !userEmail.equals("anonymousUser")) {
+        if (userId != null) {
             // 로그인한 회원
-            user = userRepository.findByEmail(userEmail)
+            user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
             authorName = user.getNickname();  // 회원은 닉네임 자동 설정
             password = null;  // 회원은 비번 필요 없음
@@ -70,14 +71,14 @@ public class CommentService {
      * - 비회원 댓글 수정 로직은 추후 작업
      */
     @Transactional
-    public CommentResponse update(Long commentId, String userEmail, CommentUpdateRequest request) {
+    public CommentResponse update(Long commentId, Long userId, CommentUpdateRequest request) {
         // 활성 상태의 댓글 조회
         Comment comment = getActiveCommentOrThrow(commentId);
 
         // 회원 댓글인지 확인
         if (comment.getUser() != null) {
             // 작성자 본인인지 확인
-            if (!comment.getUser().getEmail().equals(userEmail)) {
+            if (userId == null || !comment.getUser().getId().equals(userId)) {
                 throw new IllegalStateException("본인 댓글만 수정할 수 있습니다.");
             }
         } else {
@@ -97,13 +98,22 @@ public class CommentService {
      * - rawPassword: 비회원이 입력한 삭제용 비밀번호 (회원은 null)
      */
     @Transactional
-    public void delete(Long commentId, String userEmail, String rawPassword) {
+    public void delete(Long commentId, Long userId, String rawPassword) {
         // 활성 상태의 댓글 조회
         Comment comment = getActiveCommentOrThrow(commentId);
 
+        // 관리자는 모든 댓글 삭제 가능
+        if (userId != null) {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user != null && user.getRole() == Role.ADMIN) {
+                comment.softDelete();
+                return;
+            }
+        }
+
         if (comment.getUser() != null) {
             // 회원 댓글인 경우: 본인 확인
-            if (userEmail == null || !comment.getUser().getEmail().equals(userEmail)) {
+            if (userId == null || !comment.getUser().getId().equals(userId)) {
                 throw new IllegalArgumentException("본인 댓글만 삭제할 수 있습니다.");
             }
         } else {

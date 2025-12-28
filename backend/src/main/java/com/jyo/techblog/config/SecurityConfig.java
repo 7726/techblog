@@ -58,8 +58,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                         // GET 댓글 조회는 permitAll
                         .requestMatchers(HttpMethod.GET, "/post/*/comments").permitAll()
-                        // 나머지 댓글 관련은 인증 필요
-                        .requestMatchers("/posts/*/comments", "/comments/**").hasAnyRole("USER", "ADMIN")
+                        // 비회원도 댓글 작성/삭제 가능
+                        .requestMatchers(HttpMethod.POST, "/posts/*/comments").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/comments/**").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/comments/**").permitAll()
                         // 좋아요 기능 (상태 조회, 좋아요는 모두 가능, 취소는 회원만 가능)
                         .requestMatchers(HttpMethod.GET, "/posts/*/likes").permitAll()
                         .requestMatchers(HttpMethod.POST, "/posts/*/likes").permitAll()

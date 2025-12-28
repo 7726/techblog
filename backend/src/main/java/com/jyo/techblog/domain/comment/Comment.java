@@ -25,7 +25,7 @@ public class Comment extends BaseTimeEntity {
 
     // 누가 쓴 댓글인지
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
 
     @Column(nullable = false, length = 1000)

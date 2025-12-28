@@ -34,10 +34,10 @@ public class CommentController {
             Authentication authentication
     ) {
         // jWT에서 이메일 꺼내기
-        String email = authentication.getName();
+        Long userId = getUserId(authentication);
 
         // postId는 URL, content는 body에서 받아서 서비스로 전달
-        return commentService.create(email, postId, request);
+        return commentService.create(userId, postId, request);
     }
 
     /**
@@ -62,8 +62,8 @@ public class CommentController {
             @Valid @RequestBody CommentUpdateRequest request,
             Authentication authentication
     ) {
-        String email = authentication.getName();
-        return commentService.update(id, email, request);
+        Long userId = getUserId(authentication);
+        return commentService.update(id, userId, request);
     }
 
     /**
@@ -78,12 +78,24 @@ public class CommentController {
             Authentication authentication,
             @RequestBody(required = false) Map<String, String> requestBody
     ) {
-        String email = authentication.getName(); // 기존 방식 유지
+        Long userId = getUserId(authentication);
 
         // Body에서 비밀번호 꺼내기 (없으면 null)
         String password = (requestBody != null) ? requestBody.get("password") : null;
 
-        commentService.delete(id, email, password);
+        commentService.delete(id, userId, password);
+    }
+
+    private Long getUserId(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+        String name = authentication.getName();
+        if ("anonymousUser".equals(name)) {
+            return null;
+        }
+        // 토큰에 있는 ID(String)를 Long으로 변환
+        return Long.parseLong(name);
     }
 
 }
