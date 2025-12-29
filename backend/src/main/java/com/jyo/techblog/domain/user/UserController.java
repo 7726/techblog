@@ -23,7 +23,7 @@ public class UserController {
      * - Authorization 헤더의 JWT 토큰에서 userId를 꺼내서 사용
      */
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> getMe(Authentication authentication) {
+    public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
         // JwtAuthenticationFilter 에서 넣어준 principal = userId (Long)
         Long userId = (Long) authentication.getPrincipal();
 

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping
+@RequestMapping("/api")
 public class PostLikeController {
 
     private final PostLikeService postLikeService;
@@ -44,7 +44,7 @@ public class PostLikeController {
      * - 회원만 가능
      */
     @DeleteMapping("/posts/{postId}/likes")
-    public PostLikeResponse cancelLike(
+    public PostLikeResponse cancelMemberLike(
             @PathVariable Long postId,
             Authentication authentication
     ) {

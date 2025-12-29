@@ -16,7 +16,7 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping
+@RequestMapping("/api")
 public class CommentController {
 
     private final CommentService commentService;
@@ -28,7 +28,7 @@ public class CommentController {
      */
     @PostMapping("/posts/{postId}/comments")
     @ResponseStatus(HttpStatus.CREATED)
-    public CommentResponse create(
+    public CommentResponse createComment(
             @PathVariable Long postId,
             @Valid @RequestBody CommentCreateRequest request,
             Authentication authentication
@@ -37,7 +37,7 @@ public class CommentController {
         Long userId = getUserId(authentication);
 
         // postId는 URL, content는 body에서 받아서 서비스로 전달
-        return commentService.create(userId, postId, request);
+        return commentService.createComment(userId, postId, request);
     }
 
     /**
@@ -45,11 +45,11 @@ public class CommentController {
      * - URL: GET /posts/{postId}/comments?page=0&size=10
      */
     @GetMapping("/posts/{postId}/comments")
-    public Page<CommentResponse> getByPost(
+    public Page<CommentResponse> getCommentByPost(
             @PathVariable Long postId,
             Pageable pageable
     ) {
-        return commentService.getByPost(postId, pageable);
+        return commentService.getCommentByPost(postId, pageable);
     }
 
     /**
@@ -57,13 +57,13 @@ public class CommentController {
      * - URL: PATCH /comments/{id}
      */
     @PatchMapping("/comments/{id}")
-    public CommentResponse update(
+    public CommentResponse updateComment(
             @PathVariable Long id,
             @Valid @RequestBody CommentUpdateRequest request,
             Authentication authentication
     ) {
         Long userId = getUserId(authentication);
-        return commentService.update(id, userId, request);
+        return commentService.updateComment(id, userId, request);
     }
 
     /**
@@ -73,7 +73,7 @@ public class CommentController {
      */
     @DeleteMapping("/comments/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(
+    public void deleteComment(
             @PathVariable Long id,
             Authentication authentication,
             @RequestBody(required = false) Map<String, String> requestBody
@@ -83,7 +83,7 @@ public class CommentController {
         // Body에서 비밀번호 꺼내기 (없으면 null)
         String password = (requestBody != null) ? requestBody.get("password") : null;
 
-        commentService.delete(id, userId, password);
+        commentService.deleteComment(id, userId, password);
     }
 
     private Long getUserId(Authentication authentication) {

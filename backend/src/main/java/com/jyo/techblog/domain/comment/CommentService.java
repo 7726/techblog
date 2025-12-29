@@ -30,7 +30,7 @@ public class CommentService {
      * - 회원 + 비회원 통합
      */
     @Transactional
-    public CommentResponse create(Long userId, Long postId, CommentCreateRequest request) {
+    public CommentResponse createComment(Long userId, Long postId, CommentCreateRequest request) {
         // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
@@ -71,7 +71,7 @@ public class CommentService {
      * - 비회원 댓글 수정 로직은 추후 작업
      */
     @Transactional
-    public CommentResponse update(Long commentId, Long userId, CommentUpdateRequest request) {
+    public CommentResponse updateComment(Long commentId, Long userId, CommentUpdateRequest request) {
         // 활성 상태의 댓글 조회
         Comment comment = getActiveCommentOrThrow(commentId);
 
@@ -98,7 +98,7 @@ public class CommentService {
      * - rawPassword: 비회원이 입력한 삭제용 비밀번호 (회원은 null)
      */
     @Transactional
-    public void delete(Long commentId, Long userId, String rawPassword) {
+    public void deleteComment(Long commentId, Long userId, String rawPassword) {
         // 활성 상태의 댓글 조회
         Comment comment = getActiveCommentOrThrow(commentId);
 
@@ -130,7 +130,7 @@ public class CommentService {
      * 게시글 기준 댓글 목록 조회 (페이징)
      * - 삭제되지 않은 댓글만 조회
      */
-    public Page<CommentResponse> getByPost(Long postId, Pageable pageable) {
+    public Page<CommentResponse> getCommentByPost(Long postId, Pageable pageable) {
         // 게시글 존재 여부 확인
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
