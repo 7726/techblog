@@ -1,64 +1,54 @@
-import Image from "next/image";
+import api from '@/lib/axios';
+import Link from 'next/link';
 
-export default function Home() {
+// 1. 게시글 데이터 가져오는 함수 (서버에서 실행됨)
+async function getPosts() {
+  try {
+    console.log('요청 주소 확인:', api.defaults.baseURL);
+    // baseURL에 /api가 있으니 '/posts'만 요청하면 됨
+    const response = await api.get('/posts'); 
+    
+    // Spring Boot의 Page 객체는 실제 데이터가 'content' 필드 안에 들어있음!
+    return response.data.content; 
+  } catch (error) {
+    console.error('게시글 로딩 실패:', error);
+    return []; // 에러 나면 빈 배열 반환
+  }
+}
+
+// 2. 메인 페이지 컴포넌트 (async 필수!)
+export default async function Home() {
+  const posts = await getPosts(); // 데이터 가져오기
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="max-w-4xl mx-auto p-6">
+      <header className="mb-10 flex justify-between items-center border-b pb-4">
+        <h1 className="text-3xl font-bold text-gray-800">🔥 Jyo's Tech Blog</h1>
+        {/* 아직 로그인/글쓰기 버튼은 기능 없으니 모양만 */}
+        <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+          글쓰기
+        </button>
+      </header>
+
+      <main className="grid gap-6">
+        {posts.length > 0 ? (
+          posts.map((post) => (
+            <div key={post.id} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition cursor-pointer border border-gray-100">
+              <Link href={`/posts/${post.id}`}>
+                <h2 className="text-xl font-bold mb-2 text-gray-900">{post.title}</h2>
+                <p className="text-gray-600 line-clamp-2">{post.content}</p> {/* 본문 미리보기 (2줄 제한) */}
+                <div className="mt-4 text-sm text-gray-400 flex justify-between">
+                   <span>작성자: {post.nickname || '익명'}</span>
+                   <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                </div>
+              </Link>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-20 text-gray-500">
+            <p>아직 작성된 게시글이 없습니다. 텅~ 🗑️</p>
+          </div>
+        )}
       </main>
     </div>
   );
