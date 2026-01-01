@@ -1,11 +1,13 @@
 import api from '@/lib/axios';
 import Link from 'next/link';
 
+// 데이터 페칭 로직 유지
 async function getPosts() {
   try {
     const response = await api.get('/posts');
     return response.data.content;
   } catch (error) {
+    console.error("Failed to fetch posts:", error);
     return [];
   }
 }
@@ -14,69 +16,70 @@ export default async function Home() {
   const posts = await getPosts();
 
   return (
-    <div className="min-h-screen pb-20">
-      {/* Hero Section: 블로그 타이틀 */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-6 py-20 text-center">
-          <h1 className="text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">
-            DevLog <span className="text-blue-600">.</span>
-          </h1>
-          <p className="text-xl text-gray-500 max-w-2xl mx-auto font-light">
-            개발의 모든 순간을 기록합니다. 🚀
-          </p>
-          <div className="mt-10">
-            <button className="bg-gray-900 text-white px-8 py-3 rounded-full font-medium hover:bg-gray-800 transition shadow-lg hover:shadow-xl hover:-translate-y-0.5">
-              게시글 작성하기 ✏️
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="mx-auto max-w-5xl px-6 py-12">
+      {/* 히어로 섹션 (제목) */}
+      <div className="mb-16 text-center">
+        <h1 className="mb-4 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+          기록하고, <span className="text-blue-600">성장합니다.</span>
+        </h1>
+        <p className="text-lg text-slate-600">
+          Classic ASP에서 Modern Java Backend로 나아가는 여정
+        </p>
+      </div>
 
-      {/* 게시글 목록 (카드 디자인) */}
-      <main className="max-w-5xl mx-auto px-6 mt-16">
-        {posts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post) => (
-              <Link href={`/posts/${post.id}`} key={post.id} className="group">
-                <article className="bg-white h-full rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all duration-300 hover:-translate-y-1">
-                  {/* 카드 상단 장식 (이미지 대신 그래픽) */}
-                  <div className="h-48 bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center border-b border-gray-50 group-hover:from-blue-50 group-hover:to-indigo-50 transition-colors">
-                    <span className="text-5xl drop-shadow-sm">📝</span>
+      {/* 게시글 목록 (Grid Layout) */}
+      {posts.length > 0 ? (
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {posts.map((post) => (
+            <Link key={post.id} href={`/posts/${post.id}`} className="group block h-full">
+              <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+                
+                {/* 썸네일 대체용 색상 박스 (이미지가 있다면 img 태그로 교체 가능) */}
+                <div className="h-40 w-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-4xl">
+                  ☕️
+                </div>
+
+                <div className="flex flex-1 flex-col p-6">
+                  {/* 카테고리 & 날짜 */}
+                  <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-600">
+                    <span>{post.categoryName || 'Uncategorized'}</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-slate-500">
+                      {new Date(post.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
-                  
-                  <div className="p-6">
-                    <div className="flex items-center gap-2 text-xs text-blue-600 font-bold mb-3 uppercase tracking-wider">
-                      <span>Tech</span>
-                      <span className="text-gray-300">•</span>
-                      <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+
+                  {/* 제목 */}
+                  <h2 className="mb-3 text-xl font-bold text-slate-900 line-clamp-2 group-hover:text-blue-600">
+                    {post.title}
+                  </h2>
+
+                  {/* 본문 요약 (HTML 태그 제거는 CSS line-clamp로 처리하거나 서버에서 plain text로 받는게 좋음) */}
+                  <p className="mb-4 flex-1 text-sm leading-relaxed text-slate-600 line-clamp-3">
+                    {post.content.replace(/<[^>]*>?/gm, '')} {/* 임시로 태그 제거 */}
+                  </p>
+
+                  {/* 작성자 정보 */}
+                  <div className="mt-auto flex items-center gap-2 border-t border-slate-100 pt-4">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-500">
+                      {post.authorNickname ? post.authorNickname[0] : 'U'}
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
-                      {post.title}
-                    </h2>
-                    <p className="text-gray-500 text-sm line-clamp-3 leading-relaxed mb-6">
-                      {post.content}
-                    </p>
-                    <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
-                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-400">
-                        {post.nickname ? post.nickname[0] : '익'}
-                      </div>
-                      <span className="text-sm font-medium text-gray-600">
-                        {post.nickname || '익명'}
-                      </span>
-                    </div>
+                    <span className="text-sm font-medium text-slate-700">
+                      {post.authorNickname || '익명'}
+                    </span>
                   </div>
-                </article>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-32 bg-white rounded-3xl border border-dashed border-gray-300">
-            <div className="text-6xl mb-4">📭</div>
-            <h3 className="text-xl font-bold text-gray-900">아직 게시글이 없어요</h3>
-            <p className="text-gray-500 mt-2">첫 번째 글의 주인공이 되어보세요!</p>
-          </div>
-        )}
-      </main>
+                </div>
+              </article>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-20 text-center">
+          <div className="text-6xl">📭</div>
+          <h3 className="mt-4 text-xl font-bold text-slate-900">게시글이 없습니다.</h3>
+          <p className="mt-2 text-slate-500">첫 번째 글을 작성해보세요!</p>
+        </div>
+      )}
     </div>
   );
 }
