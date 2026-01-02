@@ -2,7 +2,7 @@ import "./globals.css";
 import Link from "next/link";
 
 export const metadata = {
-  title: "TechBlog | 윤지호",
+  title: "TechBlog | BINGO",
   description: "Spring Boot & Next.js 16 기반 기술 블로그",
 };
 
