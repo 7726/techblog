@@ -88,7 +88,13 @@ export default function PostDetailPage() {
           {/* 관리자(작성자)일 경우만 수정/삭제 버튼 노출 */}
           {/* 실제로는 로그인한 유저 ID와 작성자 ID를 비교해야 하지만, 일단 토큰 유무로 간단히 처리하거나 백엔드 에러로 방어 */}
           <div className="flex gap-2">
-             {/* 수정 기능은 추후 구현 */}
+            {/* 👇 수정 버튼에 Link 연결 */}
+            <Link 
+              href={`/posts/${id}/edit`}
+              className="text-sm text-slate-500 hover:text-blue-600 hover:bg-slate-50 px-3 py-1 rounded transition"
+            >
+              수정
+            </Link>
             <button 
               onClick={handleDelete}
               className="text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded transition"

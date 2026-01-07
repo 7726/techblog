@@ -107,7 +107,7 @@ export default function Home() {
                     {post.categoryName || 'General'}
                   </span>
                   {/* 날짜 포맷팅 (YYYY-MM-DD) */}
-                  <time>{post.createdDate ? new Date(post.createdDate).toLocaleDateString() : '날짜 없음'}</time>
+                  <time>{post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '날짜 없음'}</time>
                 </div>
                 
                 <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
