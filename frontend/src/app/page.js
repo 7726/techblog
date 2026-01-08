@@ -1,135 +1,267 @@
-'use client'; // 👈 클라이언트 컴포넌트 선언 (Hooks 사용을 위해 필수)
+'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from "next/link";
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from "@/lib/axios";
 
-export default function Home() {
-  const [posts, setPosts] = useState([]); // 게시글 담을 곳
-  const [loading, setLoading] = useState(true); // 로딩 상태
-  const [error, setError] = useState(null); // 에러 상태
+// useSearchParams를 사용하는 컴포넌트는 Suspense로 감싸야 함
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20">로딩 중...</div>}>
+      <HomeContent />
+    </Suspense>
+  );
+}
 
-  // 페이지 로드 시 백엔드에서 데이터 가져오기
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // URL에서 파라미터 읽기
+  const currentKeyword = searchParams.get('keyword') || '';
+  const currentCategory = searchParams.get('categoryId') || '';
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+
+  // 상태 관리
+  const [posts, setPosts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
+  // 검색어 입력 상태
+  const [searchTerm, setSearchTerm] = useState(currentKeyword);
+
+  // 1. 카테고리 목록 가져오기
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get('/categories');
+        setCategories(response.data);
+      } catch (err) {
+        console.error('카테고리 로딩 실패:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // 2. 게시글 목록 가져오기
   useEffect(() => {
     const fetchPosts = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        // 백엔드 API 호출 (GET http://localhost:8080/api/posts)
-        // 주의: 백엔드 Controller 주소가 '/api/posts'가 맞는지 확인 필요!
-        const response = await api.get('/posts'); 
+        const params = {
+          page: currentPage - 1,
+          size: 9,
+          sort: 'createdAt,desc',
+        };
+
+        if (currentKeyword) params.keyword = currentKeyword;
+        if (currentCategory) params.categoryId = currentCategory;
+
+        const response = await api.get('/posts', { params });
         
-        console.log("백엔드 응답 데이터:", response.data); // 👈 브라우저 개발자 도구(F12) Console에서 확인 가능
-        
-        // 백엔드 응답 구조에 따라 수정이 필요할 수 있습니다.
-        // 예: response.data.content (Page 객체인 경우) 또는 response.data (List인 경우)
-        // 일단 List로 가정하고 넣습니다.
-        setPosts(response.data.content); 
+        setPosts(response.data.content);
+        setTotalPages(response.data.totalPages);
+        setTotalElements(response.data.totalElements);
       } catch (err) {
         console.error("데이터 가져오기 실패:", err);
-        setError("게시글을 불러오는데 실패했습니다.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchPosts();
-  }, []);
+  }, [currentPage, currentKeyword, currentCategory]);
 
-  // 1. 로딩 중일 때 보여줄 화면
-  if (loading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="text-xl font-semibold text-slate-500 animate-pulse">
-          데이터를 불러오는 중입니다... ⏳
-        </div>
-      </div>
-    );
-  }
+  const handleSearch = (e) => {
+    e.preventDefault();
+    updateParams({ keyword: searchTerm, page: 1 });
+  };
 
-  // 2. 에러 났을 때 보여줄 화면
-  if (error) {
-    return (
-      <div className="flex h-[50vh] flex-col items-center justify-center gap-4 text-center">
-        <div className="text-red-500 font-bold text-xl">앗! 오류가 발생했어요. 😭</div>
-        <p className="text-slate-600">{error}</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-700 transition"
-        >
-          다시 시도하기
-        </button>
-      </div>
-    );
-  }
+  const handleCategoryClick = (categoryId) => {
+    setSearchTerm(''); 
+    updateParams({ categoryId: categoryId, keyword: '', page: 1 });
+  };
 
-  // 3. 데이터가 없을 때 (게시글 0개)
-  if (!posts || posts.length === 0) {
-    return (
-      <div className="text-center py-20">
-        <h2 className="text-2xl font-bold text-slate-700">아직 작성된 글이 없어요. 📝</h2>
-        <p className="text-slate-500 mt-2">첫 번째 글의 주인공이 되어보세요!</p>
-      </div>
-    );
-  }
+  const handlePageChange = (newPage) => {
+    updateParams({ page: newPage });
+  };
 
-  // 4. 정상 화면 (리스트 출력)
+  const updateParams = (newParams) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value === '' || value === null) {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+    router.push(`/?${params.toString()}`);
+  };
+
   return (
-    <div className="space-y-16">
+    <div className="flex flex-col md:flex-row gap-8">
       
-      {/* 히어로 섹션 */}
-      <section className="text-center py-10 md:py-16 space-y-6">
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
-          기록이 성장이 되는 공간,<br />
-          <span className="text-blue-600">DevLog</span> 입니다.
-        </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-          백엔드 개발자 윤지호의 기술 블로그입니다.<br className="hidden md:block"/>
-          새로운 기술을 배우고 적용하며 겪은 경험들을 공유합니다.
-        </p>
-      </section>
-
-      {/* 게시글 목록 */}
-      <section>
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-800">최신 글 ({posts.length})</h2>
+      {/* 사이드바 (카테고리) */}
+      <aside className="w-full md:w-64 flex-shrink-0 space-y-8">
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm sticky top-24">
+          <h3 className="font-bold text-slate-900 mb-4 text-lg">Categories</h3>
+          <ul className="space-y-2">
+            <li>
+              <button
+                onClick={() => handleCategoryClick('')}
+                className={`w-full text-left px-3 py-2 rounded-md transition text-sm font-medium ${
+                  !currentCategory 
+                    ? 'bg-blue-50 text-blue-600' 
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                전체보기
+              </button>
+            </li>
+            {categories.map((cat) => (
+              <li key={cat.id}>
+                <button
+                  onClick={() => handleCategoryClick(cat.id)}
+                  className={`w-full text-left px-3 py-2 rounded-md transition text-sm font-medium ${
+                    currentCategory === String(cat.id)
+                      ? 'bg-blue-50 text-blue-600'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
+      </aside>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {posts.map((post) => (
-            <article 
-              key={post.id} 
-              className="group flex flex-col justify-between h-full bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+      {/* 메인 콘텐츠 */}
+      <div className="flex-1 space-y-8">
+        
+        {/* 검색바 & 정보 */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">
+              {currentCategory 
+                ? `${categories.find(c => String(c.id) === currentCategory)?.name || 'Category'} 글 목록` 
+                : currentKeyword 
+                  ? `'${currentKeyword}' 검색 결과` 
+                  : '전체 글 목록'}
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              총 <span className="font-semibold text-blue-600">{totalElements}</span>개의 글이 있습니다.
+            </p>
+          </div>
+
+          <form onSubmit={handleSearch} className="relative w-full sm:w-72">
+            <input 
+              type="text" 
+              placeholder="검색어를 입력하세요..." 
+              className="w-full pl-4 pr-10 py-2 border border-slate-300 rounded-full focus:outline-none focus:border-blue-500 text-sm transition"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <button 
+              type="submit" 
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600"
             >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-                  <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                    {/* 카테고리가 있으면 표시, 없으면 기본값 */}
-                    {post.categoryName || 'General'}
-                  </span>
-                  {/* 날짜 포맷팅 (YYYY-MM-DD) */}
-                  <time>{post.createdAt ? new Date(post.createdAt).toLocaleDateString() : '날짜 없음'}</time>
-                </div>
-                
-                <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
-                  <Link href={`/posts/${post.id}`} className="focus:outline-none">
-                    <span className="absolute inset-0" aria-hidden="true" />
-                    {post.title}
-                  </Link>
-                </h3>
-                
-                <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
-                  {/* 내용 요약이 있다면 표시, 없으면 본문 일부 */}
-                  {post.content ? post.content.substring(0, 100) + '...' : '내용 없음'}
-                </p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 flex items-center text-sm font-semibold text-blue-600 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                자세히 읽기 &rarr;
-              </div>
-            </article>
-          ))}
+              🔍
+            </button>
+          </form>
         </div>
-      </section>
+
+        {/* 게시글 리스트 */}
+        {loading ? (
+          <div className="py-20 text-center text-slate-500">데이터를 불러오는 중입니다... ⏳</div>
+        ) : posts.length === 0 ? (
+          <div className="py-20 text-center bg-white rounded-2xl border border-slate-200">
+            <p className="text-lg text-slate-600">조건에 맞는 게시글이 없습니다. 😢</p>
+            {(currentKeyword || currentCategory) && (
+              <button 
+                onClick={() => updateParams({ keyword: '', categoryId: '', page: 1 })}
+                className="mt-4 text-blue-600 hover:underline text-sm"
+              >
+                전체 목록으로 돌아가기
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {posts.map((post) => (
+              <article 
+                key={post.id} 
+                // 👇 [수정됨] 여기에 'relative' 클래스 추가! 이제 투명 막이 이 안에서만 돕니다.
+                className="group relative flex flex-col justify-between bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                      {post.categoryName || 'General'}
+                    </span>
+                    <time>{new Date(post.createdAt).toLocaleDateString()}</time>
+                  </div>
+                  
+                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug line-clamp-2">
+                    <Link href={`/posts/${post.id}`}>
+                      {/* 이녀석이 범인이었습니다. 부모에 relative가 생겨서 이제 얌전해질 겁니다. */}
+                      <span className="absolute inset-0" />
+                      {post.title}
+                    </Link>
+                  </h3>
+                  
+                  <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed h-16 overflow-hidden">
+                    {post.content}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {/* 페이지네이션 */}
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-8">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              &lt; 이전
+            </button>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(page => Math.abs(page - currentPage) <= 2 || page === 1 || page === totalPages)
+              .map((page, index, array) => (
+                <span key={page} className="flex">
+                  {index > 0 && page !== array[index - 1] + 1 && <span className="px-2">...</span>}
+                  <button
+                    onClick={() => handlePageChange(page)}
+                    className={`px-3 py-1 rounded text-sm font-medium transition ${
+                      currentPage === page
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white border border-slate-200 hover:bg-slate-50 text-slate-600'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                </span>
+            ))}
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              다음 &gt;
+            </button>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
