@@ -194,7 +194,6 @@ function HomeContent() {
             {posts.map((post) => (
               <article 
                 key={post.id} 
-                // 👇 [수정됨] 여기에 'relative' 클래스 추가! 이제 투명 막이 이 안에서만 돕니다.
                 className="group relative flex flex-col justify-between bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
               >
                 <div className="space-y-3">
@@ -207,7 +206,6 @@ function HomeContent() {
                   
                   <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug line-clamp-2">
                     <Link href={`/posts/${post.id}`}>
-                      {/* 이녀석이 범인이었습니다. 부모에 relative가 생겨서 이제 얌전해질 겁니다. */}
                       <span className="absolute inset-0" />
                       {post.title}
                     </Link>

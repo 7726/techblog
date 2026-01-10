@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import api from '@/lib/axios';
 import CommentSection from '@/components/CommentSection';
+import LikeButton from '@/components/LikeButton';
 
 export default function PostDetailPage() {
   const { id } = useParams(); // URL에서 글 ID 가져오기
@@ -70,7 +71,7 @@ export default function PostDetailPage() {
             {post.categoryName || 'General'}
           </span>
           <span>•</span>
-          <time>{new Date(post.createdDate).toLocaleDateString()}</time>
+          <time>{new Date(post.createdAt).toLocaleDateString()}</time>
           <span>•</span>
           <span>조회수 {post.viewCount}</span>
         </div>
@@ -119,6 +120,11 @@ export default function PostDetailPage() {
         >
           {post.content}
         </ReactMarkdown>
+      </div>
+
+      {/* 👇 좋아요 기능 */}
+      <div className="flex justify-center my-10">
+        <LikeButton postId={id} />
       </div>
 
       {/* 👇 하단 네비게이션 위에 댓글 섹션 추가 */}
