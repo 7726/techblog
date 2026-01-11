@@ -20,7 +20,7 @@ public class CategoryService {
      * 카테고리 전체 조회
      */
     public List<CategoryResponse> getCategories() {
-        return categoryRepository.findAllByOrderByNameAsc().stream()
+        return categoryRepository.findAllByDeletedFalseOrderByNameAsc().stream()
                 .map(CategoryResponse::from)
                 .collect(Collectors.toList());
     }
@@ -30,7 +30,7 @@ public class CategoryService {
      */
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request) {
-        if (categoryRepository.existsByName(request.getName())) {
+        if (categoryRepository.existsByNameAndDeletedFalse(request.getName())) {
             throw new IllegalArgumentException("이미 존재하는 카테고리 이름입니다.");
         }
 
@@ -44,7 +44,7 @@ public class CategoryService {
      */
     @Transactional
     public CategoryResponse updateCategory(Long id, CategoryRequest request) {
-        Category category = categoryRepository.findById(id)
+        Category category = categoryRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
 
         category.update(request.getName(), request.getDescription());
@@ -56,7 +56,7 @@ public class CategoryService {
      */
     @Transactional
     public void deleteCategory(Long id) {
-        Category category = categoryRepository.findById(id)
+        Category category = categoryRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
 
         category.softDelete();

@@ -12,7 +12,7 @@ export default function LikeButton({ postId }) {
   useEffect(() => {
     const fetchLikeStatus = async () => {
       try {
-        // GET 요청 시 백엔드가 IP 혹은 토큰으로 'liked' 여부를 판단해서 줌
+        // GET 요청 시 백엔드가 IP 혹은 토큰으로 'likedByMe' 여부를 판단해서 줌
         const response = await api.get(`/posts/${postId}/likes`);
         setLiked(response.data.likedByMe); 
         setLikeCount(response.data.likeCount);

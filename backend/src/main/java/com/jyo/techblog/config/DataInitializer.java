@@ -59,7 +59,7 @@ public class DataInitializer {
         );
 
         for (String name : defaultNames) {
-            if (categoryRepository.existsByName(name)) {
+            if (categoryRepository.existsByNameAndDeletedFalse(name)) {
                 continue;
             }
 

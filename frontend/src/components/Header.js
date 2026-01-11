@@ -43,6 +43,12 @@ export default function Header() {
           {isLoggedIn ? (
             <div className="flex items-center gap-4">
               <Link 
+                href="/admin/categories" 
+                className="hidden md:inline-flex text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
+              >
+                카테고리 관리
+              </Link>
+              <Link 
                 href="/write" 
                 className="hidden md:inline-flex px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm"
               >
