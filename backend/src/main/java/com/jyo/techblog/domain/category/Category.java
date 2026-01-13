@@ -2,15 +2,15 @@ package com.jyo.techblog.domain.category;
 
 import com.jyo.techblog.common.BaseTimeEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 /**
  * 게시글 카테고리 엔티티
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
 @Entity
 @Table(name = "categories")
 public class Category extends BaseTimeEntity {

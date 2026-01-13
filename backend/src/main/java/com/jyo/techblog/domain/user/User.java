@@ -3,9 +3,7 @@ package com.jyo.techblog.domain.user;
 import com.jyo.techblog.common.BaseTimeEntity;
 import com.jyo.techblog.domain.post.Post;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +13,8 @@ import java.util.List;
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
 @Entity
 @Table(name = "users")  // user는 예약어일 수 있기 때문에 users로
 public class User extends BaseTimeEntity {

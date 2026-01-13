@@ -4,15 +4,15 @@ import com.jyo.techblog.common.BaseTimeEntity;
 import com.jyo.techblog.domain.category.Category;
 import com.jyo.techblog.domain.user.User;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 /**
  * 블로그 글 엔티티
  */
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
 @Entity
 @Table(name = "posts")
 public class Post extends BaseTimeEntity {
