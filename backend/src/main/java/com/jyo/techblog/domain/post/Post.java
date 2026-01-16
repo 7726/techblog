@@ -38,10 +38,12 @@ public class Post extends BaseTimeEntity {
 
     // 조회수
     @Column(nullable = false)
+    @Builder.Default
     private long viewCount = 0;
 
     // 소프트 삭제
     @Column(nullable = false)
+    @Builder.Default
     private boolean deleted = false;
 
     //== 생성 메서드 ==//

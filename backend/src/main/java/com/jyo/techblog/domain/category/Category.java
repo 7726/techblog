@@ -26,6 +26,7 @@ public class Category extends BaseTimeEntity {
     private String description;   // 카테고리 설명
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean deleted = false;
 
     public static Category create(String name, String description) {

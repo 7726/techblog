@@ -16,19 +16,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Optional<Post> findByIdAndDeletedFalse(Long id);
 
     // 삭제되지 않은 글 목록 전체
-    List<Post> findByDeletedFalse(Pageable pageable);
+    List<Post> findAllByDeletedFalse(Pageable pageable);
 
     // 삭제되지 않은 글만 대상 + 제목/내용 검색
-    // V1
-    @Query("""
-        SELECT p
-        FROM Post p
-        WHERE p.deleted = false
-        AND (p.title LIKE %:keyword% OR p.content LIKE %:keyword%)
-    """)
-    List<Post> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
-
-    // V2 (카테고리 추가 버전)
     @Query("""
         SELECT p
         FROM Post p
@@ -41,7 +31,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         )
         AND (:categoryId IS NULL OR p.category.id = :categoryId)
     """)
-    Page<Post> search(
+    Page<Post> searchByKeyword(
             @Param("keyword") String keyword,
             @Param("categoryId") Long categoryId,
             Pageable pageable

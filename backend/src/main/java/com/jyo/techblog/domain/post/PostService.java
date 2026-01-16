@@ -56,6 +56,7 @@ public class PostService {
     public PostResponse getPost(Long postId) {
         Post post = postRepository.findByIdAndDeletedFalse(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
         return PostResponse.from(post);
     }
 
@@ -65,7 +66,8 @@ public class PostService {
      * - keyword가 있으면 제목 or 내용만 포함된 글만
      */
     public Page<PostResponse> getPosts(String keyword, Long categoryId, Pageable pageable) {
-        Page<Post> page = postRepository.search(keyword, categoryId, pageable);
+        Page<Post> page = postRepository.searchByKeyword(keyword, categoryId, pageable);
+
         return page.map(PostResponse::from);
     }
 
@@ -80,7 +82,7 @@ public class PostService {
             Long postId,
             PostUpdateRequest request
     ) {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndDeletedFalse(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
         if (post.isDeleted()) {
@@ -127,7 +129,7 @@ public class PostService {
         if (categoryId == null) {
             return null;
         }
-        return categoryRepository.findById(categoryId)
+        return categoryRepository.findByIdAndDeletedFalse(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
     }
 }

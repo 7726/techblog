@@ -37,6 +37,7 @@ public class User extends BaseTimeEntity {
     private Role role;  // USER, ADMIN
 
     @OneToMany(mappedBy = "author")
+    @Builder.Default
     private List<Post> posts = new ArrayList<>();
 
     //== 정적 팩토리 메서드 ==//
