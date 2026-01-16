@@ -105,6 +105,6 @@ class PostServiceTest {
         // when & then (예외 발생 검증)
         assertThatThrownBy(() -> postService.updatePost(requestUserId, isAdmin, postId, request))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessage("게시글 수정 권한이 없습니다.");
+                .hasMessage("본인의 글만 수정할 수 있습니다.");
     }
 }
