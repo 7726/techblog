@@ -25,7 +25,7 @@ public class Post extends BaseTimeEntity {
     private String title;  // 글 제목
 
     @Lob  // 긴 텍스트 저장 (위지윅에서 내려오는 HTML 컨텐츠)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)  // 여러 글이 하나의 작성자를 가질 수 있음

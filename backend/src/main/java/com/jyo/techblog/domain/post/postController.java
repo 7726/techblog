@@ -69,8 +69,8 @@ public class postController {
      */
     @GetMapping
     public ResponseEntity<Page<PostResponse>> getPosts(
-            @RequestParam(value = "keyword", required = false) String keyword,
-            @RequestParam(value = "categoryId", required = false) Long categoryId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {

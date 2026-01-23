@@ -1,198 +1,151 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/axios';
+import Editor from '@/components/Editor'; // 👈 Editor 컴포넌트 import
 
 export default function EditPostPage() {
+  const { id } = useParams();
   const router = useRouter();
-  const { id } = useParams(); // URL에서 글 ID 가져오기
-  const fileInputRef = useRef(null);
 
-  // 입력 폼 상태
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [categoryId, setCategoryId] = useState('');
+  const [content, setContent] = useState(''); // HTML 내용이 들어감
   const [categories, setCategories] = useState([]);
-  
-  const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true); // 데이터 로딩 상태
+  const [categoryId, setCategoryId] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // 1. 초기 데이터 로딩 (카테고리 + 기존 글 내용)
+  // 1. 데이터 로딩 (카테고리 + 게시글 정보)
   useEffect(() => {
-    // 비로그인 접근 차단
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      alert('로그인이 필요한 서비스입니다.');
-      router.replace('/login');
-      return;
-    }
-
     const fetchData = async () => {
       try {
-        // 카테고리 목록과 게시글 상세 내용을 병렬로 가져옴 (속도 향상)
-        const [catRes, postRes] = await Promise.all([
-          api.get('/categories'),
-          api.get(`/posts/${id}`)
-        ]);
+        setLoading(true);
 
-        setCategories(catRes.data);
-        
-        // 기존 글 내용 채우기
+        // 1) 카테고리 목록 조회
+        const categoryRes = await api.get('/categories');
+        setCategories(categoryRes.data);
+
+        // 2) 수정할 게시글 정보 조회
+        const postRes = await api.get(`/posts/${id}`);
         const post = postRes.data;
+
+        // 3) 상태에 데이터 채워넣기 (Binding)
         setTitle(post.title);
-        setContent(post.content);
-        // 백엔드 응답에 categoryId가 있다고 가정 (없으면 categoryName으로 찾거나 DTO 수정 필요)
+        setContent(post.content); // HTML 태그가 포함된 본문
+        
+        // 카테고리 ID 설정 (기존 글의 카테고리가 목록에 있을 때만 설정)
+        // post.categoryId가 null일 수도 있으므로 체크
         if (post.categoryId) {
             setCategoryId(post.categoryId);
-        } else if (catRes.data.length > 0) {
-            // 카테고리 ID가 응답에 없으면 기본값 (혹은 매칭 로직 필요)
-            setCategoryId(catRes.data[0].id);
+        } else if (categoryRes.data.length > 0) {
+            // 카테고리가 없는 글이었다면 기본값(첫 번째 카테고리) 설정
+            setCategoryId(categoryRes.data[0].id);
         }
 
       } catch (err) {
         console.error('데이터 로딩 실패:', err);
-        alert('글 정보를 불러오지 못했습니다.');
+        alert('게시글 정보를 불러오지 못했습니다.');
         router.back();
       } finally {
-        setInitialLoading(false);
+        setLoading(false);
       }
     };
 
-    if (id) fetchData();
+    if (id) {
+      fetchData();
+    }
   }, [id, router]);
 
-  // 2. 글 수정 요청 (PUT)
-  const handleSubmit = async () => {
-    if (!title.trim() || !content.trim()) {
-      alert('제목과 내용을 모두 입력해주세요.');
+  // 2. 수정 완료 핸들러
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // 혹시 모를 폼 전송 방지
+
+    if (!title.trim()) {
+      alert('제목을 입력해주세요.');
       return;
     }
 
-    if (!confirm('글을 수정하시겠습니까?')) return;
+    if (!content.trim()) {
+      alert('내용을 입력해주세요.');
+      return;
+    }
 
-    setLoading(true);
     try {
-      // PostUpdateRequest DTO에 맞춤
-      const payload = {
+      // PUT 요청으로 수정
+      await api.put(`/posts/${id}`, {
         title,
         content,
-        categoryId: categoryId ? Number(categoryId) : null, 
-      };
+        categoryId: categoryId ? Number(categoryId) : null,
+      });
 
-      await api.put(`/posts/${id}`, payload);
-      
-      alert('글이 성공적으로 수정되었습니다! 🎉');
+      alert('수정되었습니다! ✨');
       router.push(`/posts/${id}`); // 상세 페이지로 이동
     } catch (err) {
-      console.error('글 수정 실패:', err);
-      alert(err.response?.data?.message || '글 수정에 실패했습니다.');
-    } finally {
-      setLoading(false);
+      console.error(err);
+      // 백엔드 에러 메시지 보여주기
+      const message = err.response?.data?.message || '수정에 실패했습니다.';
+      alert(`오류 발생: ${message}`);
     }
   };
 
-  // 3. 이미지 업로드 (글쓰기와 동일)
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      setLoading(true);
-      const response = await api.post('/images', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const imageUrl = response.data.url || response.data; 
-      const imageMarkdown = `\n![이미지 설명](${imageUrl})\n`;
-      setContent((prev) => prev + imageMarkdown);
-    } catch (err) {
-      console.error('이미지 업로드 실패:', err);
-      alert('이미지 업로드에 실패했습니다.');
-    } finally {
-      setLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  if (initialLoading) {
-    return <div className="flex h-screen items-center justify-center">데이터 불러오는 중... ⏳</div>;
+  if (loading) {
+    return <div className="text-center py-20">데이터를 불러오는 중... ⏳</div>;
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">글 수정하기 ✏️</h1>
-        <div className="flex gap-2">
-          <button 
-            onClick={() => router.back()}
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition"
-          >
-            취소
-          </button>
+    <div className="h-screen flex flex-col bg-white">
+      {/* 상단 헤더 */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <button 
+          onClick={() => router.back()}
+          className="text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          ← 취소
+        </button>
+        
+        <div className="flex gap-4">
           <button 
             onClick={handleSubmit}
-            disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition disabled:opacity-50"
+            className="bg-blue-600 text-white px-6 py-2 rounded-md font-medium hover:bg-blue-700 transition-colors shadow-sm"
           >
-            {loading ? '수정 중...' : '수정 완료'}
+            수정 완료
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* 입력 폼 (글쓰기 페이지와 동일한 UI) */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">카테고리</label>
-          <select 
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full md:w-1/3 p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          >
-            <option value="">카테고리 선택</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* 메인 입력 영역 */}
+      <div className="flex-1 max-w-4xl mx-auto w-full p-6 space-y-6">
+        {/* 카테고리 선택 */}
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          className="w-40 p-2 text-sm text-slate-600 bg-slate-50 rounded-md border-none focus:ring-0 cursor-pointer"
+        >
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
 
-        <div>
-          <input
-            type="text"
-            placeholder="제목을 입력하세요"
-            className="w-full text-3xl font-bold placeholder-slate-300 border-b border-transparent focus:border-slate-300 focus:outline-none py-2 transition"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
-
-        <div className="flex items-center gap-2 border-y border-slate-100 py-3">
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 rounded hover:bg-slate-200 transition"
-          >
-            <span>📷 이미지 업로드</span>
-          </button>
-          <input 
-            type="file" 
-            ref={fileInputRef}
-            className="hidden" 
-            accept="image/*"
-            onChange={handleImageUpload}
-          />
-          <span className="text-xs text-slate-400 ml-auto">마크다운 문법이 지원됩니다.</span>
-        </div>
-
-        <textarea
-          placeholder="내용을 입력하세요..."
-          className="w-full min-h-[500px] resize-none text-lg text-slate-800 placeholder-slate-300 focus:outline-none leading-relaxed"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
+        {/* 제목 입력 */}
+        <input
+          type="text"
+          placeholder="제목을 입력하세요"
+          className="w-full text-4xl font-bold text-slate-900 placeholder:text-slate-300 border-none focus:ring-0 focus:outline-none bg-transparent"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
         />
+
+        <div className="w-16 h-1 bg-slate-900 rounded-full" />
+
+        {/* 👇 [수정] 본문 에디터 (기존 textarea 대체) */}
+        <div className="h-[calc(100vh-350px)]"> 
+          <Editor 
+            value={content} 
+            onChange={setContent} 
+          />
+        </div>
       </div>
     </div>
   );
