@@ -114,16 +114,26 @@ jobs:
           # Secrets 환경변수 주입
           envs: DB_URL, DB_USERNAME, DB_PASSWORD, AWS_ACCESS_KEY, AWS_SECRET_KEY, S3_BUCKET_NAME, JWT_SECRET, S3_UPLOAD_DIR, S3_UPLOAD_URL_PREFIX, FRONTEND_URL
           script: |
-            # 1. 백엔드 재시작
+            # 1. 메모리 확보 (캐시 비우기) - t3.micro 필수 안전장치
+            echo "🧹 Clearing memory cache..."
+            sudo sysctl -w vm.drop_caches=3
+            free -h
+
+            # 2. 백엔드 재시작
             echo "🔥 Backend Deploy Start..."
             
-            # 실행 중인 Jar 프로세스 종료
-            CURRENT_PID=$(pgrep -f .jar)
+            # (수정됨) 'java' 라는 이름의 프로세스만 찾아서 종료 (스크립트 자살 방지)
+            # pgrep -x java : 프로세스 이름이 정확히 java인 것만 찾음
+            CURRENT_PID=$(pgrep -x java)
+            
             if [ -z $CURRENT_PID ]; then
-              echo "> 실행 중인 백엔드 프로세스가 없습니다."
+              echo "> 현재 실행 중인 Java 프로세스가 없습니다."
             else
               echo "> 실행 중인 프로세스 종료: $CURRENT_PID"
-              kill -9 $CURRENT_PID
+              kill -15 $CURRENT_PID
+              sleep 5
+              # 안 죽었으면 확인 사살
+              kill -9 $CURRENT_PID 2>/dev/null || true
             fi
 
             # 새 Jar 실행 (nohup으로 백그라운드 실행)
