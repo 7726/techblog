@@ -3,9 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-// 👇 [삭제] 마크다운 관련 라이브러리 제거
-// import ReactMarkdown from 'react-markdown';
-// import remarkGfm from 'remark-gfm';
 import api from '@/lib/axios';
 import CommentSection from '@/components/CommentSection';
 import LikeButton from '@/components/LikeButton';
@@ -17,9 +14,15 @@ export default function PostDetailPage() {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // ✅ [추가] 로그인 상태
 
-  // 게시글 데이터 가져오기
+  // 초기 데이터 로딩 및 로그인 체크
   useEffect(() => {
+    // 1. 로그인 여부 확인
+    const token = localStorage.getItem('accessToken');
+    setIsLoggedIn(!!token); // 토큰이 있으면 true, 없으면 false
+
+    // 2. 게시글 데이터 가져오기
     const fetchPost = async () => {
       try {
         setLoading(true);
@@ -57,7 +60,7 @@ export default function PostDetailPage() {
   if (!post) return <div className="text-center py-20">글을 찾을 수 없습니다. 404 😢</div>;
 
   return (
-    <article className="max-w-4xl mx-auto space-y-8">
+    <article className="max-w-4xl mx-auto space-y-8 pb-20">
       
       {/* 1. 게시글 헤더 */}
       <header className="space-y-4 border-b border-slate-200 pb-6">
@@ -78,30 +81,29 @@ export default function PostDetailPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-700">by {post.writerName || '관리자'}</span>
-            {/* 👇 헤더 옆에 좋아요 버튼 배치 (원하시면 여기 두셔도 됩니다) */}
-            {/* <LikeButton postId={id} /> */}
           </div>
 
-          <div className="flex gap-2">
-            <Link 
-              href={`/posts/${id}/edit`}
-              className="text-sm text-slate-500 hover:text-blue-600 hover:bg-slate-50 px-3 py-1 rounded transition"
-            >
-              수정
-            </Link>
-            <button 
-              onClick={handleDelete}
-              className="text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded transition"
-            >
-              삭제
-            </button>
-          </div>
+          {/* 👇 [수정] 로그인한 경우에만 수정/삭제 버튼 노출 */}
+          {isLoggedIn && (
+            <div className="flex gap-2">
+              <Link 
+                href={`/posts/${id}/edit`}
+                className="text-sm text-slate-500 hover:text-blue-600 hover:bg-slate-50 px-3 py-1 rounded transition"
+              >
+                수정
+              </Link>
+              <button 
+                onClick={handleDelete}
+                className="text-sm text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded transition"
+              >
+                삭제
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
       {/* 2. 게시글 본문 (HTML 렌더링) */}
-      {/* 👇 [수정] ReactMarkdown 제거하고 dangerouslySetInnerHTML 적용 */}
-      {/* prose 클래스가 HTML 태그들에 스타일을 자동으로 입혀줍니다. */}
       <div 
         className="prose prose-lg prose-slate max-w-none break-keep"
         dangerouslySetInnerHTML={{ __html: post.content }}

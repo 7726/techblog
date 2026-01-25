@@ -9,7 +9,7 @@ export default function CommentSection({ postId }) {
 
   // 댓글 작성 폼 상태
   const [form, setForm] = useState({
-    author: '',
+    authorName: '',
     password: '',
     content: '',
   });
@@ -38,7 +38,7 @@ export default function CommentSection({ postId }) {
     
     // 유효성 검사
     if (!form.content.trim()) return alert('내용을 입력해주세요.');
-    if (!form.author.trim()) return alert('닉네임을 입력해주세요.');
+    if (!form.authorName.trim()) return alert('닉네임을 입력해주세요.');
     if (!form.password.trim()) return alert('비밀번호를 입력해주세요.');
 
     if (!confirm('댓글을 등록하시겠습니까?')) return;
@@ -47,13 +47,13 @@ export default function CommentSection({ postId }) {
       // 비회원 댓글 작성 API 호출
       // 백엔드 DTO(CommentCreateRequest) 필드명과 일치해야 함
       await api.post(`/posts/${postId}/comments`, {
-        author: form.author,
+        authorName: form.authorName,
         password: form.password,
         content: form.content,
       });
 
       alert('댓글이 등록되었습니다. 🎉');
-      setForm({ author: '', password: '', content: '' }); // 폼 초기화
+      setForm({ authorName: '', password: '', content: '' }); // 폼 초기화
       fetchComments(); // 목록 새로고침
     } catch (err) {
       console.error('댓글 작성 실패:', err);
@@ -96,8 +96,8 @@ export default function CommentSection({ postId }) {
             type="text"
             placeholder="닉네임"
             className="flex-1 px-4 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
-            value={form.author}
-            onChange={(e) => setForm({ ...form, author: e.target.value })}
+            value={form.authorName}
+            onChange={(e) => setForm({ ...form, authorName: e.target.value })}
             required
           />
           <input
