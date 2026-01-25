@@ -8,6 +8,7 @@ import com.jyo.techblog.domain.user.UserRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.util.List;
 /**
  * 애플리케이션 시작 시 기본 데이터 (관리자 계정, 기본 카테고리) 생성
  */
+@Profile("local")
 @Configuration
 @RequiredArgsConstructor
 public class DataInitializer {
