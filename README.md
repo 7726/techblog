@@ -35,5 +35,4 @@ Java Spring Boot 백엔드와 Next.js 프론트엔드로 구성된 개인 기술
 ```bash
 techblog/
 ├── backend/    # Spring Boot API Server
-
 └── frontend/   # Next.js Client Application
