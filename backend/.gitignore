@@ -36,8 +36,3 @@ out/
 ### VS Code ###
 .vscode/
 
-# Spring Boot local config
-application-local.yml
-
-# AWS credentials & any sensitive config
-application-*.yml
