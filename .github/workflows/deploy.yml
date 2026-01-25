@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 jobs:
-  # 1. 백엔드 빌드 (Java Spring Boot)
+  # 1. 백엔드 빌드
   build-backend:
     runs-on: ubuntu-latest
     steps:
@@ -24,6 +24,8 @@ jobs:
         run: |
           cd backend
           ./gradlew clean build -x test
+          # 실행 불가능한 plain jar 삭제
+          rm build/libs/*-plain.jar
 
       - name: Upload Backend Artifact
         uses: actions/upload-artifact@v4
@@ -31,7 +33,7 @@ jobs:
           name: backend-jar
           path: backend/build/libs/*.jar
 
-  # 2. 프론트엔드 빌드 (Next.js)
+  # 2. 프론트엔드 빌드
   build-frontend:
     runs-on: ubuntu-latest
     steps:
@@ -49,21 +51,18 @@ jobs:
 
       - name: Build Next.js
         env:
-          # 빌드 시점에 백엔드 API 주소를 주입 (EC2 퍼블릭 IP)
           NEXT_PUBLIC_API_URL: http://${{ secrets.EC2_HOST }}:8080
         run: |
           cd frontend
           npm run build
+          # .next 폴더 압축
+          tar -czf build.tar.gz .next public package.json next.config.mjs
 
       - name: Upload Frontend Artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: |
-            frontend/.next
-            frontend/public
-            frontend/package.json
-            frontend/next.config.mjs
+          path: frontend/build.tar.gz
 
   # 3. EC2로 배포
   deploy:
@@ -82,8 +81,8 @@ jobs:
           name: frontend-build
           path: frontend-artifact
 
-      # 파일 전송 (SCP) - 백엔드 Jar
-      - name: Transfer Backend Jar to EC2
+      # 백엔드 전송
+      - name: Transfer Backend Jar
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -93,55 +92,49 @@ jobs:
           target: "~/app/backend"
           strip_components: 1
 
-      # 파일 전송 (SCP) - 프론트엔드 빌드 결과물
-      - name: Transfer Frontend Files to EC2
+      # 프론트엔드 전송
+      - name: Transfer Frontend File
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "frontend-artifact/*"
+          source: "frontend-artifact/build.tar.gz"
           target: "~/app/frontend"
           strip_components: 1
 
-      # 서버 재시작 (SSH)
+      # 서버 재시작
       - name: Restart Server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          # Secrets 환경변수 주입
-          envs: DB_URL, DB_USERNAME, DB_PASSWORD, AWS_ACCESS_KEY, AWS_SECRET_KEY, S3_BUCKET_NAME, JWT_SECRET, S3_UPLOAD_DIR, S3_UPLOAD_URL_PREFIX, FRONTEND_URL
+          # 👇 [수정] Github Secrets를 스크립트 내 환경변수로 주입 (S3 관련 변수 추가)
+          envs: PROD_DB_URL, PROD_DB_USERNAME, PROD_DB_PASSWORD, AWS_ACCESS_KEY, AWS_SECRET_KEY, S3_BUCKET_NAME, JWT_SECRET, S3_UPLOAD_DIR, S3_UPLOAD_URL_PREFIX, FRONTEND_URL
           script: |
-            # 1. 메모리 확보 (캐시 비우기) - t3.micro 필수 안전장치
-            echo "🧹 Clearing memory cache..."
+            # 1. 메모리 확보
             sudo sysctl -w vm.drop_caches=3
-            free -h
 
-            # 2. 백엔드 재시작
+            # 2. 백엔드 배포
             echo "🔥 Backend Deploy Start..."
-            
-            # (수정됨) 'java' 라는 이름의 프로세스만 찾아서 종료 (스크립트 자살 방지)
-            # pgrep -x java : 프로세스 이름이 정확히 java인 것만 찾음
             CURRENT_PID=$(pgrep -x java)
-            
-            if [ -z $CURRENT_PID ]; then
-              echo "> 현재 실행 중인 Java 프로세스가 없습니다."
-            else
-              echo "> 실행 중인 프로세스 종료: $CURRENT_PID"
+            if [ -n "$CURRENT_PID" ]; then
+              echo "> Kill Process: $CURRENT_PID"
               kill -15 $CURRENT_PID
               sleep 5
-              # 안 죽었으면 확인 사살
               kill -9 $CURRENT_PID 2>/dev/null || true
             fi
 
-            # 새 Jar 실행 (nohup으로 백그라운드 실행)
+            # 기존 jar 삭제 후 새 jar 실행 준비
+            rm -f ~/app/backend/*.jar 2>/dev/null 
+
+            # 👇 [핵심 수정] application-prod.yml 변수명에 맞춰 매핑
             nohup java -jar \
               -Dspring.profiles.active=prod \
-              -DDB_URL=$DB_URL \
-              -DDB_USERNAME=$DB_USERNAME \
-              -DDB_PASSWORD=$DB_PASSWORD \
+              -DDB_URL=$PROD_DB_URL \
+              -DDB_USERNAME=$PROD_DB_USERNAME \
+              -DDB_PASSWORD=$PROD_DB_PASSWORD \
               -DAWS_ACCESS_KEY=$AWS_ACCESS_KEY \
               -DAWS_SECRET_KEY=$AWS_SECRET_KEY \
               -DS3_BUCKET_NAME=$S3_BUCKET_NAME \
@@ -150,17 +143,16 @@ jobs:
               -DS3_UPLOAD_URL_PREFIX=$S3_UPLOAD_URL_PREFIX \
               -DFRONTEND_URL=$FRONTEND_URL \
               ~/app/backend/*.jar > ~/app/backend/nohup.out 2>&1 &
-              
-            echo "✅ Backend Deploy Complete!"
 
-            # 2. 프론트엔드 재시작
+            # 3. 프론트엔드 배포
             echo "🔥 Frontend Deploy Start..."
             cd ~/app/frontend
             
-            # 의존성 설치 (프로덕션용만 가볍게)
+            tar -xzf build.tar.gz
+            rm build.tar.gz
+
             npm install --production
             
-            # PM2로 Next.js 재시작 (없으면 시작, 있으면 리로드)
             pm2 describe techblog-front > /dev/null
             if [ $? -eq 0 ]; then
               pm2 reload techblog-front
@@ -168,4 +160,4 @@ jobs:
               pm2 start npm --name "techblog-front" -- start
             fi
             
-            echo "✅ Frontend Deploy Complete!"
+            echo "✅ All Deploy Complete!"
