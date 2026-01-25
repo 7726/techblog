@@ -1,265 +1,190 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import Link from "next/link";
-import { useRouter, useSearchParams } from 'next/navigation';
-import api from "@/lib/axios";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import api from '@/lib/axios';
+// import Header from '@/components/Header'; // ❌ [삭제] layout.js에 이미 있으므로 제거
 
-// useSearchParams를 사용하는 컴포넌트는 Suspense로 감싸야 함
-export default function HomePage() {
-  return (
-    <Suspense fallback={<div className="text-center py-20">로딩 중...</div>}>
-      <HomeContent />
-    </Suspense>
-  );
-}
-
-function HomeContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // URL에서 파라미터 읽기
-  const currentKeyword = searchParams.get('keyword') || '';
-  const currentCategory = searchParams.get('categoryId') || '';
-  const currentPage = parseInt(searchParams.get('page') || '1', 10);
-
-  // 상태 관리
+export default function Home() {
   const [posts, setPosts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState([]); // ✅ [복구] 카테고리 목록
+  const [selectedCategory, setSelectedCategory] = useState(null); // ✅ [복구] 선택된 카테고리
   const [loading, setLoading] = useState(true);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
+  const [keyword, setKeyword] = useState('');
 
-  // 검색어 입력 상태
-  const [searchTerm, setSearchTerm] = useState(currentKeyword);
-
-  // 1. 카테고리 목록 가져오기
+  // 1. 초기 데이터 로딩 (카테고리 + 전체 글)
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get('/categories');
-        setCategories(response.data);
-      } catch (err) {
-        console.error('카테고리 로딩 실패:', err);
-      }
-    };
-    fetchCategories();
-  }, []);
-
-  // 2. 게시글 목록 가져오기
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
-      try {
-        const params = {
-          page: currentPage - 1,
-          size: 9,
-          sort: 'createdAt,desc',
-        };
-
-        if (currentKeyword) params.keyword = currentKeyword;
-        if (currentCategory) params.categoryId = currentCategory;
-
-        const response = await api.get('/posts', { params });
+        setLoading(true);
+        // 카테고리 & 게시글 병렬 요청
+        const [catRes, postRes] = await Promise.all([
+          api.get('/categories'),
+          api.get('/posts')
+        ]);
         
-        setPosts(response.data.content);
-        setTotalPages(response.data.totalPages);
-        setTotalElements(response.data.totalElements);
+        setCategories(catRes.data);
+        setPosts(postRes.data.content);
       } catch (err) {
-        console.error("데이터 가져오기 실패:", err);
+        console.error('데이터 로딩 실패:', err);
       } finally {
         setLoading(false);
       }
     };
+    fetchData();
+  }, []);
 
-    fetchPosts();
-  }, [currentPage, currentKeyword, currentCategory]);
+  // 2. 게시글 필터링 (검색어 + 카테고리)
+  const fetchPosts = async (searchKeyword, categoryId) => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (searchKeyword) params.keyword = searchKeyword;
+      if (categoryId) params.categoryId = categoryId;
 
+      const response = await api.get('/posts', { params });
+      setPosts(response.data.content);
+    } catch (err) {
+      console.error('게시글 로딩 실패:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 검색 핸들러
   const handleSearch = (e) => {
     e.preventDefault();
-    updateParams({ keyword: searchTerm, page: 1 });
+    fetchPosts(keyword, selectedCategory);
   };
 
-  const handleCategoryClick = (categoryId) => {
-    setSearchTerm(''); 
-    updateParams({ categoryId: categoryId, keyword: '', page: 1 });
+  // ✅ [복구] 카테고리 클릭 핸들러
+  const handleCategoryClick = (id) => {
+    // 이미 선택된 거 누르면 해제(전체보기), 아니면 선택
+    const nextCategory = id === selectedCategory ? null : id;
+    setSelectedCategory(nextCategory);
+    fetchPosts(keyword, nextCategory);
   };
 
-  const handlePageChange = (newPage) => {
-    updateParams({ page: newPage });
-  };
-
-  const updateParams = (newParams) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(newParams).forEach(([key, value]) => {
-      if (value === '' || value === null) {
-        params.delete(key);
-      } else {
-        params.set(key, value);
-      }
-    });
-    router.push(`/?${params.toString()}`);
+  // ✅ [유지] HTML 태그 제거 및 말줄임 처리 함수
+  const stripHtmlAndTruncate = (html, maxLength = 100) => {
+    if (!html) return '';
+    const text = html.replace(/<[^>]*>?/gm, ''); // 태그 제거
+    const cleanText = text.replace(/&nbsp;/g, ' ').trim(); // 공백 문자 제거
+    if (cleanText.length > maxLength) {
+      return cleanText.substring(0, maxLength) + '...';
+    }
+    return cleanText;
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-8">
-      
-      {/* 사이드바 (카테고리) */}
-      <aside className="w-full md:w-64 flex-shrink-0 space-y-8">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm sticky top-24">
-          <h3 className="font-bold text-slate-900 mb-4 text-lg">Categories</h3>
-          <ul className="space-y-2">
-            <li>
-              <button
-                onClick={() => handleCategoryClick('')}
-                className={`w-full text-left px-3 py-2 rounded-md transition text-sm font-medium ${
-                  !currentCategory 
-                    ? 'bg-blue-50 text-blue-600' 
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                전체보기
-              </button>
-            </li>
-            {categories.map((cat) => (
-              <li key={cat.id}>
-                <button
-                  onClick={() => handleCategoryClick(cat.id)}
-                  className={`w-full text-left px-3 py-2 rounded-md transition text-sm font-medium ${
-                    currentCategory === String(cat.id)
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </aside>
+    <div className="min-h-screen bg-slate-50">
+      {/* Header 컴포넌트 제거 (layout.js에서 처리됨) */}
 
-      {/* 메인 콘텐츠 */}
-      <div className="flex-1 space-y-8">
-        
-        {/* 검색바 & 정보 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800">
-              {currentCategory 
-                ? `${categories.find(c => String(c.id) === currentCategory)?.name || 'Category'} 글 목록` 
-                : currentKeyword 
-                  ? `'${currentKeyword}' 검색 결과` 
-                  : '전체 글 목록'}
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              총 <span className="font-semibold text-blue-600">{totalElements}</span>개의 글이 있습니다.
-            </p>
-          </div>
-
-          <form onSubmit={handleSearch} className="relative w-full sm:w-72">
+      <main className="container mx-auto px-4 py-12 max-w-5xl">
+        {/* 상단 타이틀 & 검색창 */}
+        <div className="mb-12 text-center space-y-4">
+          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
+            Dev<span className="text-blue-600">Log</span>
+          </h1>
+          <p className="text-slate-500 text-lg">개발 지식과 경험을 공유하는 공간입니다.</p>
+          
+          <form onSubmit={handleSearch} className="relative max-w-lg mx-auto mt-6">
             <input 
-              type="text" 
+              type="text"
               placeholder="검색어를 입력하세요..." 
-              className="w-full pl-4 pr-10 py-2 border border-slate-300 rounded-full focus:outline-none focus:border-blue-500 text-sm transition"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              className="w-full px-5 py-3 rounded-full border border-slate-200 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition"
             />
             <button 
-              type="submit" 
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600"
+              type="submit"
+              className="absolute right-3 top-2.5 bg-blue-600 text-white p-1.5 rounded-full hover:bg-blue-700 transition"
             >
               🔍
             </button>
           </form>
         </div>
 
+        {/* ✅ [복구] 카테고리 필터 버튼 영역 */}
+        <div className="mb-10 flex flex-wrap justify-center gap-2">
+          <button
+            onClick={() => handleCategoryClick(null)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+              selectedCategory === null
+                ? 'bg-slate-800 text-white border-slate-800'
+                : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+            }`}
+          >
+            전체
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => handleCategoryClick(cat.id)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+                selectedCategory === cat.id
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+
         {/* 게시글 리스트 */}
         {loading ? (
-          <div className="py-20 text-center text-slate-500">데이터를 불러오는 중입니다... ⏳</div>
-        ) : posts.length === 0 ? (
-          <div className="py-20 text-center bg-white rounded-2xl border border-slate-200">
-            <p className="text-lg text-slate-600">조건에 맞는 게시글이 없습니다. 😢</p>
-            {(currentKeyword || currentCategory) && (
-              <button 
-                onClick={() => updateParams({ keyword: '', categoryId: '', page: 1 })}
-                className="mt-4 text-blue-600 hover:underline text-sm"
-              >
-                전체 목록으로 돌아가기
-              </button>
+          <div className="text-center py-20 text-slate-500">로딩 중... ⏳</div>
+        ) : (
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {posts.length > 0 ? (
+              posts.map((post) => (
+                <Link 
+                  href={`/posts/${post.id}`} 
+                  key={post.id}
+                  className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-slate-100 flex flex-col h-full"
+                >
+                  <div className="h-2 bg-blue-600 w-0 group-hover:w-full transition-all duration-500" />
+                  
+                  <div className="p-6 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                        {post.categoryName || 'General'}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {new Date(post.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <h2 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
+                      {post.title}
+                    </h2>
+
+                    {/* ✅ [적용됨] 태그 제거된 본문 미리보기 */}
+                    <p className="text-slate-600 text-sm leading-relaxed mb-6 flex-1 line-clamp-3 break-keep">
+                      {stripHtmlAndTruncate(post.content, 120)}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <span>by {post.writerName || 'Admin'}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-slate-400">
+                        <span>👀 {post.viewCount}</span>
+                        {/* 좋아요 수 표시가 필요하다면 post.likeCount 사용 */}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-20 text-slate-500 bg-white rounded-2xl border border-slate-100 border-dashed">
+                <p>게시글이 없습니다. 텅 비었네요! 🍃</p>
+              </div>
             )}
           </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
-              <article 
-                key={post.id} 
-                className="group relative flex flex-col justify-between bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                      {post.categoryName || 'General'}
-                    </span>
-                    <time>{new Date(post.createdAt).toLocaleDateString()}</time>
-                  </div>
-                  
-                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug line-clamp-2">
-                    <Link href={`/posts/${post.id}`}>
-                      <span className="absolute inset-0" />
-                      {post.title}
-                    </Link>
-                  </h3>
-                  
-                  <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed h-16 overflow-hidden">
-                    {post.content}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
         )}
-
-        {/* 페이지네이션 */}
-        {totalPages > 1 && (
-          <div className="flex justify-center gap-2 mt-8">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              &lt; 이전
-            </button>
-            
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter(page => Math.abs(page - currentPage) <= 2 || page === 1 || page === totalPages)
-              .map((page, index, array) => (
-                <span key={page} className="flex">
-                  {index > 0 && page !== array[index - 1] + 1 && <span className="px-2">...</span>}
-                  <button
-                    onClick={() => handlePageChange(page)}
-                    className={`px-3 py-1 rounded text-sm font-medium transition ${
-                      currentPage === page
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white border border-slate-200 hover:bg-slate-50 text-slate-600'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                </span>
-            ))}
-
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              다음 &gt;
-            </button>
-          </div>
-        )}
-
-      </div>
+      </main>
     </div>
   );
 }
