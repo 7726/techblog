@@ -24,7 +24,6 @@ jobs:
         run: |
           cd backend
           ./gradlew clean build -x test
-          # 실행 불가능한 plain jar 삭제
           rm build/libs/*-plain.jar
 
       - name: Upload Backend Artifact
@@ -55,7 +54,6 @@ jobs:
         run: |
           cd frontend
           npm run build
-          # .next 폴더 압축
           tar -czf build.tar.gz .next public package.json next.config.mjs
 
       - name: Upload Frontend Artifact
@@ -81,7 +79,18 @@ jobs:
           name: frontend-build
           path: frontend-artifact
 
-      # 백엔드 전송
+      # 👇 [추가됨] 파일 전송 전에 기존 파일 미리 삭제 (Clean Step)
+      - name: Clean Previous Files
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            rm -f ~/app/backend/*.jar
+            # 프론트엔드 폴더는 scp가 덮어씌우므로 굳이 삭제 안 해도 됨
+
+      # 백엔드 전송 (이제 삭제 안 당함)
       - name: Transfer Backend Jar
         uses: appleboy/scp-action@master
         with:
@@ -110,13 +119,10 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          # 👇 [수정] Github Secrets를 스크립트 내 환경변수로 주입 (S3 관련 변수 추가)
           envs: PROD_DB_URL, PROD_DB_USERNAME, PROD_DB_PASSWORD, AWS_ACCESS_KEY, AWS_SECRET_KEY, S3_BUCKET_NAME, JWT_SECRET, S3_UPLOAD_DIR, S3_UPLOAD_URL_PREFIX, FRONTEND_URL
           script: |
-            # 1. 메모리 확보
             sudo sysctl -w vm.drop_caches=3
 
-            # 2. 백엔드 배포
             echo "🔥 Backend Deploy Start..."
             CURRENT_PID=$(pgrep -x java)
             if [ -n "$CURRENT_PID" ]; then
@@ -126,10 +132,8 @@ jobs:
               kill -9 $CURRENT_PID 2>/dev/null || true
             fi
 
-            # 기존 jar 삭제 후 새 jar 실행 준비
-            rm -f ~/app/backend/*.jar 2>/dev/null 
+            # ❌ [삭제됨] rm -f ~/app/backend/*.jar (여기에 있던 삭제 명령어를 맨 위로 옮김)
 
-            # 👇 [핵심 수정] application-prod.yml 변수명에 맞춰 매핑
             nohup java -jar \
               -Dspring.profiles.active=prod \
               -DDB_URL=$PROD_DB_URL \
@@ -144,7 +148,6 @@ jobs:
               -DFRONTEND_URL=$FRONTEND_URL \
               ~/app/backend/*.jar > ~/app/backend/nohup.out 2>&1 &
 
-            # 3. 프론트엔드 배포
             echo "🔥 Frontend Deploy Start..."
             cd ~/app/frontend
             
