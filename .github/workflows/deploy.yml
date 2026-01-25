@@ -79,7 +79,7 @@ jobs:
           name: frontend-build
           path: frontend-artifact
 
-      # 👇 [추가됨] 파일 전송 전에 기존 파일 미리 삭제 (Clean Step)
+      # Clean Previous Files
       - name: Clean Previous Files
         uses: appleboy/ssh-action@master
         with:
@@ -88,9 +88,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             rm -f ~/app/backend/*.jar
-            # 프론트엔드 폴더는 scp가 덮어씌우므로 굳이 삭제 안 해도 됨
 
-      # 백엔드 전송 (이제 삭제 안 당함)
+      # 백엔드 전송
       - name: Transfer Backend Jar
         uses: appleboy/scp-action@master
         with:
@@ -115,15 +114,31 @@ jobs:
       # 서버 재시작
       - name: Restart Server
         uses: appleboy/ssh-action@master
+        # 👇 [핵심 수정] 이 env 블록이 없어서 변수가 다 비어있었습니다!!!
+        env:
+          PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+          PROD_DB_USERNAME: ${{ secrets.PROD_DB_USERNAME }}
+          PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          S3_UPLOAD_DIR: ${{ secrets.S3_UPLOAD_DIR }}
+          S3_UPLOAD_URL_PREFIX: ${{ secrets.S3_UPLOAD_URL_PREFIX }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          # envs에 적힌 변수들을 위 env 블록에서 가져와서 EC2로 넘겨줍니다.
           envs: PROD_DB_URL, PROD_DB_USERNAME, PROD_DB_PASSWORD, AWS_ACCESS_KEY, AWS_SECRET_KEY, S3_BUCKET_NAME, JWT_SECRET, S3_UPLOAD_DIR, S3_UPLOAD_URL_PREFIX, FRONTEND_URL
           script: |
             sudo sysctl -w vm.drop_caches=3
 
             echo "🔥 Backend Deploy Start..."
+            # (디버깅용) 비밀키 길이 출력 - 보안상 값은 출력 안 함
+            echo "DEBUG: JWT_SECRET length is ${#JWT_SECRET}"
+
             CURRENT_PID=$(pgrep -x java)
             if [ -n "$CURRENT_PID" ]; then
               echo "> Kill Process: $CURRENT_PID"
@@ -132,20 +147,19 @@ jobs:
               kill -9 $CURRENT_PID 2>/dev/null || true
             fi
 
-            # ❌ [삭제됨] rm -f ~/app/backend/*.jar (여기에 있던 삭제 명령어를 맨 위로 옮김)
-
+            # 변수들에 따옴표("")를 붙여서 특수문자 오류 방지
             nohup java -jar \
               -Dspring.profiles.active=prod \
-              -DDB_URL=$PROD_DB_URL \
-              -DDB_USERNAME=$PROD_DB_USERNAME \
-              -DDB_PASSWORD=$PROD_DB_PASSWORD \
-              -DAWS_ACCESS_KEY=$AWS_ACCESS_KEY \
-              -DAWS_SECRET_KEY=$AWS_SECRET_KEY \
-              -DS3_BUCKET_NAME=$S3_BUCKET_NAME \
-              -DJWT_SECRET=$JWT_SECRET \
-              -DS3_UPLOAD_DIR=$S3_UPLOAD_DIR \
-              -DS3_UPLOAD_URL_PREFIX=$S3_UPLOAD_URL_PREFIX \
-              -DFRONTEND_URL=$FRONTEND_URL \
+              -DDB_URL="$PROD_DB_URL" \
+              -DDB_USERNAME="$PROD_DB_USERNAME" \
+              -DDB_PASSWORD="$PROD_DB_PASSWORD" \
+              -DAWS_ACCESS_KEY="$AWS_ACCESS_KEY" \
+              -DAWS_SECRET_KEY="$AWS_SECRET_KEY" \
+              -DS3_BUCKET_NAME="$S3_BUCKET_NAME" \
+              -DJWT_SECRET="$JWT_SECRET" \
+              -DS3_UPLOAD_DIR="$S3_UPLOAD_DIR" \
+              -DS3_UPLOAD_URL_PREFIX="$S3_UPLOAD_URL_PREFIX" \
+              -DFRONTEND_URL="$FRONTEND_URL" \
               ~/app/backend/*.jar > ~/app/backend/nohup.out 2>&1 &
 
             echo "🔥 Frontend Deploy Start..."
