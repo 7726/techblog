@@ -11,13 +11,20 @@ Java Spring Boot 백엔드와 Next.js 프론트엔드로 구성된 개인 기술
 - **Java 17**
 - **Spring Boot 3.4.12**
 - Spring Data JPA, Spring Security (JWT)
-- AWS S3 (Image Upload)
 - MySQL (Production) / H2 (Dev)
 
 ### Frontend
 - **Next.js 16** (App Router)
 - **Tailwind CSS**
 - **JavaScript**
+
+### Infra (AWS)
+- **EC2**
+- **RDS**
+- **AWS S3 (Image Upload)**
+
+### CI/CD
+- **Github Actions**
 
 ---
 
@@ -28,4 +35,5 @@ Java Spring Boot 백엔드와 Next.js 프론트엔드로 구성된 개인 기술
 ```bash
 techblog/
 ├── backend/    # Spring Boot API Server
+
 └── frontend/   # Next.js Client Application
