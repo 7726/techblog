@@ -56,7 +56,6 @@ export default function Header() {
 
         <nav className="flex items-center gap-6 text-sm font-medium text-slate-600">
           <Link href="/" className="hover:text-blue-600 transition-colors">홈</Link>
-          <Link href="/about" className="hover:text-blue-600 transition-colors">소개</Link>
           
           {isLoggedIn ? (
             <div className="flex items-center gap-4">
