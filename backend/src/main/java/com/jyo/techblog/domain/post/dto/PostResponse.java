@@ -17,7 +17,7 @@ public class PostResponse {
     private String title;
     private String content;
     private Long authorId;
-    private String authorNickname;
+    private String nickname;
     private Long categoryId;
     private String categoryName;
     private long viewCount;

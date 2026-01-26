@@ -167,7 +167,7 @@ export default function Home() {
 
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
                       <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span>by {post.authorNickName || 'Admin'}</span>
+                        <span>by {post.nickname || 'Admin'}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-400">
                         <span>👀 {post.viewCount}</span>
