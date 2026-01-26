@@ -50,7 +50,7 @@ jobs:
 
       - name: Build Next.js
         env:
-          NEXT_PUBLIC_API_URL: http://${{ secrets.EC2_HOST }}:8080
+          NEXT_PUBLIC_API_URL: http://${{ secrets.EC2_HOST }}:8080/api
         run: |
           cd frontend
           npm run build
