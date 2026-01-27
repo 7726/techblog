@@ -23,7 +23,7 @@ export default function Home() {
         // 초기 로딩 시에는 0번 페이지 요청
         const [catRes, postRes] = await Promise.all([
           api.get('/categories'),
-          api.get('/posts?page=0&size=10') 
+          api.get('/posts?page=0&size=6') 
         ]);
         
         setCategories(catRes.data);
