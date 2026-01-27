@@ -71,7 +71,7 @@ public class postController {
     public ResponseEntity<Page<PostResponse>> getPosts(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+            @PageableDefault(size = 6, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
         Page<PostResponse> responses = postService.getPosts(keyword, categoryId, pageable);
