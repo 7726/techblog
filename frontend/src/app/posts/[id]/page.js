@@ -60,7 +60,7 @@ export default function PostDetailPage() {
   if (!post) return <div className="text-center py-20">글을 찾을 수 없습니다. 404 😢</div>;
 
   return (
-    <article className="max-w-4xl mx-auto space-y-8 pb-20">
+    <article className="max-w-4xl mx-auto space-y-8 pb-20 px-4">
       
       {/* 1. 게시글 헤더 */}
       <header className="space-y-4 border-b border-slate-200 pb-6">
@@ -74,7 +74,7 @@ export default function PostDetailPage() {
           <span>조회수 {post.viewCount}</span>
         </div>
         
-        <h1 className="text-4xl font-extrabold text-slate-900 leading-tight">
+        <h1 className="text-4xl font-extrabold text-slate-900 leading-tight break-words">
           {post.title}
         </h1>
 
@@ -105,7 +105,13 @@ export default function PostDetailPage() {
 
       {/* 2. 게시글 본문 (HTML 렌더링) */}
       <div 
-        className="prose prose-lg prose-slate max-w-none break-keep"
+        className="
+          prose prose-lg prose-slate max-w-none 
+          break-words                        
+          prose-pre:overflow-x-auto          
+          prose-pre:bg-slate-900             
+          prose-pre:text-slate-100
+        "
         dangerouslySetInnerHTML={{ __html: post.content }}
       />
 

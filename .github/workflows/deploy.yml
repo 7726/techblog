@@ -3,6 +3,13 @@ name: Deploy to EC2
 on:
   push:
     branches: [ main ]
+    # 아래 파일들만 변경되었을 땐 배포 X
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'docs/**'
+      - '**/*.md'
 
 jobs:
   # 1. 백엔드 빌드
@@ -114,7 +121,6 @@ jobs:
       # 서버 재시작
       - name: Restart Server
         uses: appleboy/ssh-action@master
-        # 👇 [핵심 수정] 이 env 블록이 없어서 변수가 다 비어있었습니다!!!
         env:
           DB_URL: ${{ secrets.DB_URL }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
