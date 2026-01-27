@@ -46,7 +46,7 @@ export default function Home() {
       setLoading(true);
       const params = {
         page: page, // 요청할 페이지 번호
-        size: 10,   // 페이지당 글 개수
+        size: 6,   // 페이지당 글 개수
       };
       
       if (searchKeyword) params.keyword = searchKeyword;
