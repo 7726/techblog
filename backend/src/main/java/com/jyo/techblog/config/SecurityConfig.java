@@ -49,6 +49,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // H2 콘솔
                         .requestMatchers("/h2-console/**").permitAll()
+                        // Swagger 관련 경로 허용
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "swagger-ui.html"
+                        ).permitAll()
                         // 이미지 조회 접근 허용
                         .requestMatchers("/files/**").permitAll()
                         // 인증/회원가입 API는 모두 허용
