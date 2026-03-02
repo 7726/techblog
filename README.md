@@ -7,7 +7,7 @@ GitHub Actions로 CI/CD를 구성 및 EC2-RDS 설정 후 Commit, Push 시 자동
 ---
 
 ## 배포 및 도메인 연결 완료
-- ~~https://jyolog.cloud(서버 내린 상태)~~
+- ~~[https://jyolog.cloud](https://jyolog.cloud)(서버 내린 상태)~~
 
 ## 🛠 Tech Stack
 
